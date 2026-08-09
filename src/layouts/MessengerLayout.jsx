@@ -29,7 +29,62 @@ import {
 } from "../services/profileService";
 import { touchLastSeen } from "../services/presenceService";
 
+
 const APP_TITLE = "XX Messenger";
+
+async function getNotificationRegistration() {
+  if (!("serviceWorker" in navigator)) {
+    return null;
+  }
+
+  try {
+    const existing =
+      await navigator.serviceWorker.getRegistration();
+
+    if (existing) {
+      return existing;
+    }
+
+    const registration =
+      await navigator.serviceWorker.register("/sw.js");
+
+    await navigator.serviceWorker.ready;
+
+    return registration;
+  } catch (error) {
+    console.error("서비스 워커 등록 실패:", error);
+    return null;
+  }
+}
+
+async function showBrowserNotification(
+  title,
+  options = {}
+) {
+  if (
+    typeof Notification === "undefined" ||
+    Notification.permission !== "granted"
+  ) {
+    return;
+  }
+
+  const registration =
+    await getNotificationRegistration();
+
+  if (registration) {
+    await registration.showNotification(
+      title,
+      options
+    );
+    return;
+  }
+
+  try {
+    new Notification(title, options);
+  } catch (error) {
+    console.error("알림 표시 실패:", error);
+  }
+}
 
 function setUnreadFavicon(unreadCount) {
   const existing = document.querySelector('link[rel="icon"]');
@@ -181,26 +236,43 @@ export default function MessengerLayout({
 
   const requestNotificationPermission = async () => {
     if (typeof Notification === "undefined") {
-      setActionError("이 브라우저는 알림 기능을 지원하지 않아요.");
+      setActionError(
+        "이 브라우저는 알림 기능을 지원하지 않아요."
+      );
       return;
     }
 
     try {
-      const permission = await Notification.requestPermission();
+      await getNotificationRegistration();
+
+      const permission =
+        await Notification.requestPermission();
+
       setNotificationPermission(permission);
 
       if (permission === "granted") {
-        new Notification("XX Messenger", {
-          body: "브라우저 알림이 켜졌어요.",
-          tag: "xx-messenger-permission",
-        });
+        await showBrowserNotification(
+          "XX Messenger",
+          {
+            body: "브라우저 알림이 켜졌어요.",
+            tag: "xx-messenger-permission",
+            icon: "/favicon.svg",
+            data: {
+              url: "/",
+            },
+          }
+        );
       } else if (permission === "denied") {
         setActionError(
-          "알림이 차단됐어요. 브라우저 주소창의 사이트 설정에서 알림을 허용해주세요."
+          "알림이 차단됐어요. 브라우저의 사이트 설정에서 알림을 허용해주세요."
         );
       }
     } catch (error) {
-      setActionError(error.message);
+      console.error(error);
+      setActionError(
+        error.message ||
+          "알림 설정 중 오류가 발생했어요."
+      );
     }
   };
 
@@ -253,7 +325,7 @@ export default function MessengerLayout({
         }`;
       }
 
-      const notification = new Notification(
+      await showBrowserNotification(
         room?.room_name || senderName,
         {
           body:
@@ -262,25 +334,16 @@ export default function MessengerLayout({
               : body,
           tag: `conversation-${messageRow.conversation_id}`,
           renotify: true,
+          icon:
+            fullMessage.sender?.avatar_signed_url ||
+            "/favicon.svg",
+          data: {
+            url: "/",
+            conversationId:
+              messageRow.conversation_id,
+          },
         }
       );
-
-      notification.onclick = () => {
-        window.focus();
-
-        const targetRoom =
-          conversationsRef.current.find(
-            (item) =>
-              item.conversation_id === messageRow.conversation_id
-          ) || room;
-
-        if (targetRoom) {
-          selectRoom(targetRoom);
-          setActiveMenu("chat");
-        }
-
-        notification.close();
-      };
     } catch (error) {
       console.error("브라우저 알림 생성 실패:", error);
     }
@@ -383,6 +446,51 @@ export default function MessengerLayout({
       supabase.removeChannel(presence);
     };
   }, [session.user.id]);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    const handleServiceWorkerMessage = (event) => {
+      if (
+        event.data?.type !== "OPEN_NOTIFICATION"
+      ) {
+        return;
+      }
+
+      const conversationId =
+        event.data.conversationId;
+
+      if (!conversationId) {
+        return;
+      }
+
+      const targetRoom =
+        conversationsRef.current.find(
+          (room) =>
+            room.conversation_id ===
+            conversationId
+        );
+
+      if (targetRoom) {
+        setActiveMenu("chat");
+        selectRoom(targetRoom);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener(
+      "message",
+      handleServiceWorkerMessage
+    );
+
+    return () => {
+      navigator.serviceWorker.removeEventListener(
+        "message",
+        handleServiceWorkerMessage
+      );
+    };
+  }, []);
 
   const openDirect = async (employee) => {
     if (employee.id === session.user.id) {
