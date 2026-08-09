@@ -3522,3 +3522,69 @@ body {
     max-width: calc(100vw - 20px) !important;
   }
 }
+/* =========================================================
+   ABSOLUTE FINAL LAYER FIX
+   모달이 메시지 ⋯ / 메뉴 / 반응창보다 무조건 위
+   ========================================================= */
+
+/* 일반 채팅 UI */
+.message-action-anchor {
+  z-index: 150 !important;
+}
+
+.message-action-menu {
+  z-index: 170 !important;
+}
+
+.reaction-picker,
+.reaction-picker.fixed-picker {
+  z-index: 180 !important;
+}
+
+/* iOS / 모바일용 전역 반응창 */
+.reaction-picker-backdrop {
+  z-index: 9000 !important;
+}
+
+.reaction-picker-global {
+  z-index: 9001 !important;
+}
+
+/* 모든 일반 모달 배경을 최상단으로 */
+.modal-backdrop {
+  position: fixed !important;
+  z-index: 50000 !important;
+  inset: 0 !important;
+}
+
+/* 모달 본체 */
+.modal-backdrop > * {
+  position: relative;
+  z-index: 50001 !important;
+}
+
+/* 채팅방 설정 */
+.room-manage-modal {
+  position: relative !important;
+  z-index: 50001 !important;
+}
+
+/* 프로필 수정 */
+.profile-edit-modal {
+  position: relative !important;
+  z-index: 50001 !important;
+}
+
+/* 단체 채팅 생성 */
+.group-modal {
+  position: relative !important;
+  z-index: 50001 !important;
+}
+
+/* 모달이 열린 상태에서는 뒤쪽 메시지 조작 UI가
+   시각적으로 모달 위로 튀어나오지 못하게 방지 */
+.modal-backdrop ~ .message-action-anchor,
+.modal-backdrop ~ .message-action-menu,
+.modal-backdrop ~ .reaction-picker {
+  z-index: 150 !important;
+}
