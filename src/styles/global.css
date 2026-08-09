@@ -3388,3 +3388,52 @@ body {
     right: 0 !important;
   }
 }
+/* =========================================================
+   MOBILE/TOUCH REACTION PICKER COMPATIBILITY FIX
+   넓은 폰/폴더블/태블릿/모바일 브라우저 데스크톱 폭 대응
+   ========================================================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .reaction-picker.fixed-picker,
+  .message-row.incoming .reaction-picker.fixed-picker,
+  .message-row.outgoing .reaction-picker.fixed-picker {
+    position: fixed !important;
+    z-index: 9999 !important;
+
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+
+    transform: translateX(-50%) !important;
+
+    width: max-content !important;
+    max-width: calc(100vw - 24px) !important;
+
+    margin: 0 !important;
+    padding: 7px !important;
+
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18) !important;
+
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  .reaction-picker.fixed-picker::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .reaction-picker.fixed-picker button {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+}
