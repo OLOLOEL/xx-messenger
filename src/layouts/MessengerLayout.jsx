@@ -147,6 +147,11 @@ export default function MessengerLayout({
   const [conversations, setConversations] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 640px)").matches
+      : false
+  );
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
@@ -167,6 +172,23 @@ export default function MessengerLayout({
       .then(setProfile)
       .catch(console.error);
   }, [session.user.id, profileRefreshKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const media = window.matchMedia("(max-width: 640px)");
+
+    const syncMobile = () => {
+      setIsMobile(media.matches);
+    };
+
+    syncMobile();
+    media.addEventListener?.("change", syncMobile);
+
+    return () => {
+      media.removeEventListener?.("change", syncMobile);
+    };
+  }, []);
 
   useEffect(() => {
     selectedRoomRef.current = selectedRoom;
@@ -729,6 +751,10 @@ export default function MessengerLayout({
             }
             onOpenManage={() => setShowManageModal(true)}
             onBack={() => setMobileChatOpen(false)}
+            isReadActive={
+              activeMenu === "chat" &&
+              (!isMobile || mobileChatOpen)
+            }
           />
         ) : (
           <div className="detail-empty">

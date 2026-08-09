@@ -152,6 +152,7 @@ export default function ChatView({
   onMessageActivity,
   onOpenManage,
   onBack,
+  isReadActive = true,
 }) {
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
@@ -216,6 +217,13 @@ export default function ChatView({
   };
 
   const markRead = async () => {
+    if (
+      !isReadActive ||
+      document.visibilityState !== "visible"
+    ) {
+      return;
+    }
+
     try {
       await markConversationRead(room.conversation_id);
       await refreshUnreadCounts();
@@ -288,7 +296,7 @@ export default function ChatView({
     return () => {
       active = false;
     };
-  }, [room.conversation_id]);
+  }, [room.conversation_id, isReadActive]);
 
   useEffect(() => {
     const refreshMessage = async (messageId) => {
@@ -403,7 +411,7 @@ export default function ChatView({
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [room.conversation_id, currentUserId]);
+  }, [room.conversation_id, currentUserId, isReadActive]);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -422,7 +430,16 @@ export default function ChatView({
         handleFocus
       );
     };
-  }, [room.conversation_id]);
+  }, [room.conversation_id, isReadActive]);
+
+  useEffect(() => {
+    if (
+      isReadActive &&
+      document.visibilityState === "visible"
+    ) {
+      markRead();
+    }
+  }, [isReadActive, room.conversation_id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
