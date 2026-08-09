@@ -1,21 +1,36 @@
 import { useState } from "react";
-import { LockKeyhole, Mail, MessageCircle } from "lucide-react";
+import {
+  LockKeyhole,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, onSignup }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorText, setErrorText] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const submit = async (event) => {
+    event.preventDefault();
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    setLoading(true);
+    setErrorText("");
 
-    if (error) return setErrorText(error.message);
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+    setLoading(false);
+
+    if (error) {
+      setErrorText(error.message);
+      return;
+    }
+
     onLogin?.(data.session);
   };
 
@@ -23,8 +38,11 @@ export default function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <div className="brand-icon"><MessageCircle size={28}/></div>
-          <div><h1>XX Messenger</h1><p>사내 메신저</p></div>
+          <MessageCircle size={31} />
+          <div>
+            <strong>XX</strong>
+            <span>Messenger</span>
+          </div>
         </div>
 
         <div className="login-heading">
@@ -35,23 +53,57 @@ export default function LoginPage({ onLogin }) {
         <form className="login-form" onSubmit={submit}>
           <label>
             <span>이메일</span>
+
             <div className="input-wrap">
-              <Mail size={18}/>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required/>
+              <Mail size={18} />
+              <input
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+                type="email"
+                required
+              />
             </div>
           </label>
 
           <label>
             <span>비밀번호</span>
+
             <div className="input-wrap">
-              <LockKeyhole size={18}/>
-              <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required/>
+              <LockKeyhole size={18} />
+              <input
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+                type="password"
+                required
+              />
             </div>
           </label>
 
-          {errorText && <div className="login-message">{errorText}</div>}
-          <button className="primary-button">로그인</button>
+          {errorText && (
+            <div className="login-message">
+              {errorText}
+            </div>
+          )}
+
+          <button
+            className="primary-button"
+            disabled={loading}
+          >
+            {loading ? "로그인 중..." : "로그인"}
+          </button>
         </form>
+
+        <div className="signup-link-area">
+          <span>계정이 없으신가요?</span>
+
+          <button type="button" onClick={onSignup}>
+            계정 신청
+          </button>
+        </div>
       </div>
     </div>
   );

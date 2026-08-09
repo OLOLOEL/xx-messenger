@@ -131,3 +131,68 @@ export async function removeMyAvatar(userId, avatarPath) {
 
   return hydrateProfileAvatar(data);
 }
+export async function listPendingApplications() {
+  const { data, error } = await supabase.rpc(
+    "list_xx_pending_applications"
+  );
+
+  if (error) throw error;
+
+  return hydrateProfileAvatars(data ?? []);
+}
+
+export async function approveApplication(
+  userId,
+  position
+) {
+  const { error } = await supabase.rpc(
+    "approve_xx_application",
+    {
+      target_user_id: userId,
+      approved_position: position,
+    }
+  );
+
+  if (error) throw error;
+}
+
+export async function rejectApplication(userId) {
+  const { error } = await supabase.rpc(
+    "reject_xx_application",
+    {
+      target_user_id: userId,
+    }
+  );
+
+  if (error) throw error;
+}
+
+export async function changeEmployeePosition(
+  userId,
+  position
+) {
+  const { error } = await supabase.rpc(
+    "change_xx_position",
+    {
+      target_user_id: userId,
+      next_position: position,
+    }
+  );
+
+  if (error) throw error;
+}
+
+export async function setEmployeeAccountStatus(
+  userId,
+  status
+) {
+  const { error } = await supabase.rpc(
+    "set_xx_account_status",
+    {
+      target_user_id: userId,
+      next_status: status,
+    }
+  );
+
+  if (error) throw error;
+}
