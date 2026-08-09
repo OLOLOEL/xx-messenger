@@ -3267,3 +3267,124 @@ body {
     border-radius: 20px !important;
   }
 }
+/* =========================================================
+   MOBILE REACTION / IMAGE OVERFLOW FIX
+   반응 여러 개, 이미지 메시지에서 좌우 잘림 방지
+   ========================================================= */
+@media (max-width: 640px) {
+  .message-row {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .message-content-stack {
+    min-width: 0 !important;
+    max-width: 76vw !important;
+    overflow: visible !important;
+  }
+
+  .message-row.incoming .message-content-stack {
+    margin-right: auto !important;
+  }
+
+  .message-row.outgoing .message-content-stack {
+    margin-left: auto !important;
+  }
+
+  .bubble-shell {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* 이미지가 반응 영역까지 화면 바깥으로 밀지 않도록 */
+  .image-message,
+  .image-message img {
+    width: auto !important;
+    max-width: min(66vw, 290px) !important;
+    height: auto !important;
+    max-height: 360px !important;
+  }
+
+  /* 반응은 메시지 아래에서 여러 줄로 안전하게 감김 */
+  .message-reactions {
+    width: fit-content !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    overflow: visible !important;
+  }
+
+  .message-row.incoming .message-reactions {
+    align-self: flex-start !important;
+    justify-content: flex-start !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+
+  .message-row.outgoing .message-reactions {
+    align-self: flex-end !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+  }
+
+  .message-reactions button {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+  }
+
+  /* 모바일 반응 선택창은 메시지 옆이 아니라 화면 하단 중앙에 띄움.
+     왼쪽/오른쪽 끝 메시지에서도 이모티콘이 잘리지 않음. */
+  .reaction-picker.fixed-picker,
+  .message-row.incoming .reaction-picker.fixed-picker,
+  .message-row.outgoing .reaction-picker.fixed-picker {
+    position: fixed !important;
+    z-index: 500 !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+
+    width: max-content !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 !important;
+    padding: 7px !important;
+
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18) !important;
+
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .reaction-picker.fixed-picker::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reaction-picker.fixed-picker button {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* ⋯ 메뉴도 화면 끝에서 잘리지 않게 */
+  .message-row.incoming .message-action-menu {
+    left: 0 !important;
+    right: auto !important;
+  }
+
+  .message-row.outgoing .message-action-menu {
+    left: auto !important;
+    right: 0 !important;
+  }
+}
