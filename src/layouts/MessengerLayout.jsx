@@ -146,6 +146,7 @@ export default function MessengerLayout({
   const [activeMenu, setActiveMenu] = useState("chat");
   const [conversations, setConversations] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [openedRoomId, setOpenedRoomId] = useState(null);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined"
@@ -246,6 +247,7 @@ export default function MessengerLayout({
   const selectRoom = async (room) => {
     setSelectedRoom(room);
     selectedRoomRef.current = room;
+    setOpenedRoomId(room.conversation_id);
     setMobileChatOpen(true);
 
     try {
@@ -573,6 +575,7 @@ export default function MessengerLayout({
     setShowManageModal(false);
     setSelectedRoom(null);
     selectedRoomRef.current = null;
+    setOpenedRoomId(null);
     setMobileChatOpen(false);
     await loadConversations();
   };
@@ -753,6 +756,7 @@ export default function MessengerLayout({
             onBack={() => setMobileChatOpen(false)}
             isReadActive={
               activeMenu === "chat" &&
+              openedRoomId === selectedRoom.conversation_id &&
               (!isMobile || mobileChatOpen)
             }
           />
