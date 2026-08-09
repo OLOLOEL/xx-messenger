@@ -91,6 +91,7 @@ export default function MessengerLayout({
   const [activeMenu, setActiveMenu] = useState("chat");
   const [conversations, setConversations] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
@@ -168,6 +169,7 @@ export default function MessengerLayout({
   const selectRoom = async (room) => {
     setSelectedRoom(room);
     selectedRoomRef.current = room;
+    setMobileChatOpen(true);
 
     try {
       await markConversationRead(room.conversation_id);
@@ -441,6 +443,7 @@ export default function MessengerLayout({
     setShowManageModal(false);
     setSelectedRoom(null);
     selectedRoomRef.current = null;
+    setMobileChatOpen(false);
     await loadConversations();
   };
 
@@ -448,7 +451,11 @@ export default function MessengerLayout({
     profile?.name || session.user.email || "사용자";
 
   return (
-    <div className="messenger-shell">
+    <div
+      className={`messenger-shell ${
+        mobileChatOpen && activeMenu === "chat" ? "mobile-chat-open" : ""
+      } ${activeMenu === "admin" ? "mobile-admin-open" : ""}`}
+    >
       <aside className="app-rail">
         <div className="app-logo">XX</div>
 
@@ -457,7 +464,10 @@ export default function MessengerLayout({
             className={`app-nav-button ${
               activeMenu === "chat" ? "active" : ""
             }`}
-            onClick={() => setActiveMenu("chat")}
+            onClick={() => {
+              setActiveMenu("chat");
+              setMobileChatOpen(false);
+            }}
             title={`채팅${totalUnread > 0 ? ` (${totalUnread})` : ""}`}
           >
             <div className="rail-icon-wrap">
@@ -475,7 +485,10 @@ export default function MessengerLayout({
             className={`app-nav-button ${
               activeMenu === "employees" ? "active" : ""
             }`}
-            onClick={() => setActiveMenu("employees")}
+            onClick={() => {
+              setActiveMenu("employees");
+              setMobileChatOpen(false);
+            }}
           >
             <Users size={22} />
           </button>
@@ -510,7 +523,10 @@ export default function MessengerLayout({
                 activeMenu === "admin" ? "active" : ""
               }`}
               title="사장 관리자"
-              onClick={() => setActiveMenu("admin")}
+              onClick={() => {
+                setActiveMenu("admin");
+                setMobileChatOpen(false);
+              }}
             >
               <ShieldCheck size={22} />
             </button>
@@ -604,6 +620,7 @@ export default function MessengerLayout({
               loadConversations(selectedRoom.conversation_id)
             }
             onOpenManage={() => setShowManageModal(true)}
+            onBack={() => setMobileChatOpen(false)}
           />
         ) : (
           <div className="detail-empty">

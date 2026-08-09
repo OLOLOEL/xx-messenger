@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Download,
   FileText,
   Image as ImageIcon,
@@ -150,6 +151,7 @@ export default function ChatView({
   isOtherOnline,
   onMessageActivity,
   onOpenManage,
+  onBack,
 }) {
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState([]);
@@ -598,6 +600,15 @@ export default function ChatView({
     <>
       <header className="chat-topbar">
         <div className="chat-room-title">
+          <button
+            type="button"
+            className="mobile-chat-back"
+            onClick={onBack}
+            aria-label="채팅 목록으로 돌아가기"
+          >
+            <ArrowLeft size={22} />
+          </button>
+
           <Avatar
             className={`chat-room-avatar ${group ? "group" : ""}`}
             url={group ? null : room.other_avatar_signed_url}

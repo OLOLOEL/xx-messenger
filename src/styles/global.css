@@ -2759,3 +2759,511 @@ body {
 .file-download-button:hover {
   background: rgba(0, 0, 0, 0.10);
 }
+/* =========================================================
+   XX MESSENGER - MOBILE APP LAYOUT
+   PC 레이아웃은 유지 / 모바일은 카카오톡처럼 화면 전환
+   ========================================================= */
+
+.mobile-chat-back {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .messenger-shell {
+    grid-template-columns: 68px 320px minmax(0, 1fr) !important;
+  }
+
+  .bubble-shell {
+    max-width: min(440px, 65vw) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body {
+    overscroll-behavior: none;
+  }
+
+  .messenger-shell {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(0, 1fr) 58px !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  /* PC 왼쪽 레일 -> 모바일 하단 메뉴 */
+  .app-rail {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding:
+      5px
+      max(8px, env(safe-area-inset-right))
+      max(5px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left)) !important;
+    overflow: visible !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-right: 0 !important;
+    background: var(--kakao-yellow) !important;
+    z-index: 80;
+  }
+
+  .app-logo {
+    display: none !important;
+  }
+
+  .app-nav {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-evenly !important;
+    gap: 0 !important;
+    margin: 0 !important;
+  }
+
+  .app-nav-button {
+    width: 46px !important;
+    height: 46px !important;
+    flex: 0 0 46px !important;
+    border-radius: 13px !important;
+  }
+
+  .app-nav-button.active {
+    background: rgba(60, 30, 30, 0.12) !important;
+  }
+
+  .rail-settings {
+    position: static !important;
+    margin: 0 !important;
+    flex: 0 0 46px !important;
+  }
+
+  /* 목록 화면 */
+  .middle-column {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    overflow: hidden !important;
+    border-right: 0 !important;
+    background: #fff !important;
+  }
+
+  .room-column-header,
+  .employee-header {
+    min-height: 70px !important;
+    padding:
+      max(14px, env(safe-area-inset-top))
+      17px
+      10px !important;
+  }
+
+  .room-column-header h1,
+  .employee-header h1 {
+    font-size: 24px !important;
+  }
+
+  .room-search,
+  .employee-search {
+    height: 44px !important;
+    margin: 5px 13px 8px !important;
+  }
+
+  .room-list,
+  .employee-list {
+    padding: 5px 7px 10px !important;
+  }
+
+  .conversation-item,
+  .employee-card {
+    min-height: 67px !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .conversation-avatar,
+  .employee-avatar {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .conversation-topline strong,
+  .employee-name-line strong {
+    font-size: 14px !important;
+  }
+
+  .conversation-bottomline p,
+  .employee-meta {
+    font-size: 11px !important;
+  }
+
+  .my-profile-strip {
+    flex: 0 0 auto !important;
+    padding: 10px 14px !important;
+  }
+
+  .profile-logout {
+    flex: 0 0 auto !important;
+    padding: 7px 14px 10px !important;
+  }
+
+  /* 채팅 화면: 기본은 숨김 */
+  .chat-column {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: none !important;
+    overflow: hidden !important;
+    background: var(--kakao-chat-bg) !important;
+    z-index: 40;
+  }
+
+  .messenger-shell.mobile-chat-open .middle-column {
+    display: none !important;
+  }
+
+  .messenger-shell.mobile-chat-open .chat-column {
+    display: flex !important;
+  }
+
+  /* 채팅 상단 */
+  .chat-topbar {
+    min-height: 64px !important;
+    padding:
+      max(8px, env(safe-area-inset-top))
+      9px
+      7px !important;
+    background: #fff !important;
+  }
+
+  .chat-room-title {
+    min-width: 0 !important;
+    gap: 8px !important;
+  }
+
+  .mobile-chat-back {
+    width: 38px;
+    height: 38px;
+    display: grid !important;
+    flex: 0 0 38px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #222;
+    cursor: pointer;
+  }
+
+  .mobile-chat-back:active {
+    background: #f1f1f1;
+  }
+
+  .chat-room-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    flex: 0 0 38px !important;
+  }
+
+  .chat-room-title > div:last-child {
+    min-width: 0 !important;
+  }
+
+  .chat-room-title h2 {
+    max-width: 42vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 14px !important;
+  }
+
+  .chat-room-title span {
+    font-size: 9px !important;
+  }
+
+  .chat-top-actions {
+    flex: 0 0 auto !important;
+  }
+
+  .chat-top-actions .round-icon-button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* 공지 / 검색 */
+  .chat-announcement {
+    min-height: 44px !important;
+  }
+
+  .message-search-panel {
+    top: 64px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: calc(100% - 64px) !important;
+    border-left: 0 !important;
+  }
+
+  /* 메시지 */
+  .message-area {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 16px 10px 18px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-row {
+    gap: 7px !important;
+    margin-bottom: 13px !important;
+  }
+
+  .message-avatar {
+    width: 31px !important;
+    height: 31px !important;
+    flex: 0 0 31px !important;
+  }
+
+  .message-content-stack {
+    max-width: calc(100vw - 58px) !important;
+  }
+
+  .bubble-shell {
+    max-width: 72vw !important;
+  }
+
+  .bubble {
+    max-width: 100% !important;
+    padding: 9px 11px !important;
+    font-size: 12px !important;
+    line-height: 1.48 !important;
+  }
+
+  .message-sender {
+    font-size: 10px !important;
+  }
+
+  .message-time {
+    font-size: 8px !important;
+  }
+
+  .image-message,
+  .image-message img {
+    max-width: min(68vw, 300px) !important;
+    max-height: 360px !important;
+  }
+
+  .file-message {
+    width: min(68vw, 280px) !important;
+    min-width: 0 !important;
+    max-width: 280px !important;
+  }
+
+  .message-action-menu,
+  .reaction-picker.fixed-picker {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  /* 입력창 */
+  .composer-wrap {
+    flex: 0 0 auto !important;
+    padding:
+      8px
+      8px
+      max(8px, env(safe-area-inset-bottom))
+      8px !important;
+    background: #fff !important;
+  }
+
+  .composer {
+    min-height: 44px !important;
+    gap: 4px !important;
+    padding: 5px 6px !important;
+  }
+
+  .composer-plus {
+    width: 32px !important;
+    height: 32px !important;
+    flex: 0 0 32px !important;
+  }
+
+  .composer textarea {
+    min-width: 0 !important;
+    min-height: 32px !important;
+    max-height: 90px !important;
+    padding: 7px 2px !important;
+    font-size: 16px !important;
+  }
+
+  .send-button {
+    height: 32px !important;
+    flex: 0 0 auto !important;
+    padding: 0 12px !important;
+  }
+
+  /* 모달 */
+  .modal-backdrop {
+    padding:
+      max(10px, env(safe-area-inset-top))
+      10px
+      max(10px, env(safe-area-inset-bottom)) !important;
+    align-items: flex-end !important;
+  }
+
+  .group-modal,
+  .room-manage-modal,
+  .profile-edit-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 92dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  .group-modal-header,
+  .manage-header,
+  .profile-edit-header {
+    padding: 16px !important;
+  }
+
+  .group-form,
+  .manage-body,
+  .profile-edit-body {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+
+  .group-employee-list,
+  .invite-list {
+    max-height: 38dvh !important;
+  }
+
+  .image-preview-backdrop {
+    padding: 12px !important;
+  }
+
+  .image-preview-large {
+    max-width: 96vw !important;
+    max-height: 82dvh !important;
+  }
+
+  /* 관리자 */
+  .messenger-shell.mobile-admin-open .middle-column {
+    display: none !important;
+  }
+
+  .messenger-shell.mobile-admin-open .chat-column {
+    display: flex !important;
+    background: #f8f9fb !important;
+  }
+
+  .admin-page {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .admin-page-header {
+    padding:
+      max(13px, env(safe-area-inset-top))
+      13px
+      11px !important;
+  }
+
+  .admin-page-header p {
+    display: none !important;
+  }
+
+  .admin-tabs {
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding: 7px 8px !important;
+    white-space: nowrap !important;
+    scrollbar-width: none;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-tabs button {
+    flex: 0 0 auto !important;
+  }
+
+  .admin-toolbar {
+    padding: 8px !important;
+  }
+
+  .admin-content,
+  .admin-chat-audit {
+    min-width: 0 !important;
+    overflow: auto !important;
+  }
+
+  .admin-table-wrap {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 720px !important;
+  }
+
+  .admin-chat-audit {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .admin-room-list {
+    width: 100% !important;
+    max-height: 220px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+
+  .admin-message-view {
+    min-height: 320px !important;
+  }
+
+  /* 로그인 / 가입 / 대기 */
+  .login-page {
+    min-height: 100dvh !important;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      14px
+      max(16px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .login-card {
+    width: 100% !important;
+    max-width: 420px !important;
+    padding: 25px 20px !important;
+    border-radius: 20px !important;
+  }
+}
