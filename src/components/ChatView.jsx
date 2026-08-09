@@ -877,7 +877,9 @@ export default function ChatView({
       )}
 
       <div
-        className="message-area"
+        className={`message-area ${
+          messageMenuId ? "message-menu-open" : ""
+        }`}
         ref={messageAreaRef}
         onScroll={handleMessageAreaScroll}
       >
@@ -948,7 +950,11 @@ export default function ChatView({
                   </div>
                 )}
 
-                <div className="message-action-anchor">
+                <div
+                  className={`message-action-anchor ${
+                    messageMenuId === message.id ? "menu-active" : ""
+                  }`}
+                >
                   <button
                     className="message-more-button"
                     title="메시지 메뉴"

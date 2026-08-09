@@ -3802,3 +3802,27 @@ body {
     flex-basis: 48px !important;
   }
 }
+/* =========================================================
+   MOBILE MESSAGE MENU CLEANUP
+   메뉴 열렸을 때 다른 메시지의 ⋮ 버튼 숨기기
+   ========================================================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .message-area.message-menu-open
+    .message-action-anchor:not(.menu-active) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .message-area.message-menu-open
+    .message-action-anchor.menu-active {
+    visibility: visible !important;
+    z-index: 1000 !important;
+  }
+
+  .message-area.message-menu-open
+    .message-action-anchor.menu-active
+    .message-action-menu {
+    visibility: visible !important;
+    z-index: 1001 !important;
+  }
+}
