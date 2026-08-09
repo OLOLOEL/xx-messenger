@@ -392,38 +392,47 @@ export default function AdminPage({
   };
 
   const resetPassword = async (user) => {
-    if (
-      !window.confirm(
-        `${
-          user.name || user.email
-        } 계정의 비밀번호를 임시 비밀번호로 초기화할까요?`
-      )
-    ) {
-      return;
+  if (
+    !window.confirm(
+      `${user.name || user.email} 계정의 비밀번호를 초기화할까요?`
+    )
+  ) {
+    return;
+  }
+
+  setErrorText("");
+  setInfoText("");
+
+  try {
+    const result = await callAdminUserApi(
+      "reset_password",
+      {
+        userId: user.id,
+      }
+    );
+
+    const temporaryPassword =
+      result?.temporaryPassword;
+
+    if (!temporaryPassword) {
+      throw new Error(
+        "임시 비밀번호를 받아오지 못했습니다."
+      );
     }
 
-    setErrorText("");
-    setInfoText("");
+    // 화면에도 남김
+    setInfoText(
+      `${user.name || user.email} 비밀번호가 초기화되었습니다.`
+    );
 
-    try {
-      const result = await callAdminUserApi(
-        "reset_password",
-        {
-          userId: user.id,
-        }
-      );
-
-      setInfoText(
-        `${
-          user.name || user.email
-        } 임시 비밀번호: ${
-          result.temporaryPassword
-        }`
-      );
-    } catch (error) {
-      setErrorText(error.message);
-    }
-  };
+    // 바로 팝업으로 보여줌
+    window.alert(
+      `${user.name || user.email}님의 임시 비밀번호\n\n${temporaryPassword}\n\n이 창을 닫기 전에 복사해주세요.`
+    );
+  } catch (error) {
+    setErrorText(error.message);
+  }
+};
 
   const openConversation = async (room) => {
     if (!canViewAllChats) return;
