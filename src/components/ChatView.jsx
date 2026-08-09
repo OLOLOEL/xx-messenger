@@ -173,6 +173,8 @@ export default function ChatView({
   const fileInputRef = useRef(null);
   const channelRef = useRef(null);
   const bottomRef = useRef(null);
+  const messageAreaRef = useRef(null);
+  const stickToBottomRef = useRef(true);
   const messageRefs = useRef({});
 
   const group = room.conversation_type === "group";
@@ -269,6 +271,7 @@ export default function ChatView({
   };
 
   useEffect(() => {
+    stickToBottomRef.current = true;
     setReplyingTo(null);
     setSearchOpen(false);
     setSearchQuery("");
@@ -441,11 +444,27 @@ export default function ChatView({
     }
   }, [isReadActive, room.conversation_id]);
 
+  const handleMessageAreaScroll = () => {
+    const area = messageAreaRef.current;
+    if (!area) return;
+
+    const distanceFromBottom =
+      area.scrollHeight - area.scrollTop - area.clientHeight;
+
+    stickToBottomRef.current =
+      distanceFromBottom <= 120;
+  };
+
   useEffect(() => {
+    if (!stickToBottomRef.current) {
+      return;
+    }
+
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
+      block: "end",
     });
-  }, [messages, typingUsers]);
+  }, [messages]);
 
   const currentMember = members.find(
     (member) => member.user_id === currentUserId
@@ -782,7 +801,11 @@ export default function ChatView({
         </div>
       )}
 
-      <div className="message-area">
+      <div
+        className="message-area"
+        ref={messageAreaRef}
+        onScroll={handleMessageAreaScroll}
+      >
         {messages.map((message, messageIndex) => {
           const mine =
             message.sender_id === currentUserId;
