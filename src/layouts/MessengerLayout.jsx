@@ -229,10 +229,12 @@ export default function MessengerLayout({
       const id =
         typeof preferredId === "string"
           ? preferredId
-          : currentSelectedId || rooms[0]?.conversation_id;
+          : currentSelectedId;
 
       const nextRoom =
-        rooms.find((room) => room.conversation_id === id) || null;
+        id
+          ? rooms.find((room) => room.conversation_id === id) || null
+          : null;
 
       setSelectedRoom(nextRoom);
       selectedRoomRef.current = nextRoom;
