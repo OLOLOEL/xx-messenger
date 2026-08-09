@@ -3437,3 +3437,88 @@ body {
     height: 34px !important;
   }
 }
+/* =========================================================
+   GLOBAL REACTION PICKER - iOS/SAFARI SAFE
+   메시지 내부 absolute/fixed 대신 ChatView 최상단 레이어로 렌더
+   ========================================================= */
+
+.reaction-picker-backdrop {
+  position: fixed !important;
+  z-index: 9998 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: default !important;
+}
+
+.reaction-picker-global {
+  position: fixed !important;
+  z-index: 9999 !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 88px !important;
+  transform: translateX(-50%) !important;
+
+  width: max-content !important;
+  max-width: calc(100vw - 24px) !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+
+  padding: 7px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.20) !important;
+
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+}
+
+.reaction-picker-global::-webkit-scrollbar {
+  display: none !important;
+}
+
+.reaction-picker-global button {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  flex: 0 0 36px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: transparent !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  touch-action: manipulation !important;
+}
+
+.reaction-picker-global button:hover,
+.reaction-picker-global button:active {
+  background: #f2f2f2 !important;
+}
+
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .reaction-picker-global {
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+}

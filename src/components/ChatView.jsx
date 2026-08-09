@@ -922,25 +922,6 @@ export default function ChatView({
                     </div>
                   )}
 
-                  {reactionPickerId === message.id && (
-                    <div className="reaction-picker fixed-picker">
-                      {["👍", "❤️", "😂", "😮", "😢", "🙏"].map(
-                        (emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() =>
-                              reactToMessage(
-                                message.id,
-                                emoji
-                              )
-                            }
-                          >
-                            {emoji}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <div className="message-line">
@@ -1096,6 +1077,40 @@ export default function ChatView({
 
         <div ref={bottomRef} />
       </div>
+
+      {reactionPickerId && (
+        <>
+          <button
+            type="button"
+            className="reaction-picker-backdrop"
+            aria-label="반응 선택 닫기"
+            onClick={() => setReactionPickerId(null)}
+          />
+
+          <div
+            className="reaction-picker-global"
+            role="dialog"
+            aria-label="메시지 반응 선택"
+          >
+            {["👍", "❤️", "😂", "😮", "😢", "🙏"].map(
+              (emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() =>
+                    reactToMessage(
+                      reactionPickerId,
+                      emoji
+                    )
+                  }
+                >
+                  {emoji}
+                </button>
+              )
+            )}
+          </div>
+        </>
+      )}
 
       <div className="composer-wrap">
         {errorText && (
