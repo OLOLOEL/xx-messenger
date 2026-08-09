@@ -11,6 +11,7 @@ import {
 import { supabase } from "../lib/supabase";
 import EmployeeList from "../components/EmployeeList";
 import ConversationList from "../components/ConversationList";
+import BookmarkList from "../components/BookmarkList";
 import ChatView from "../components/ChatView";
 import GroupCreateModal from "../components/GroupCreateModal";
 import RoomManageModal from "../components/RoomManageModal";
@@ -159,6 +160,10 @@ export default function MessengerLayout({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [actionError, setActionError] = useState("");
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+  const [bookmarkRefreshKey, setBookmarkRefreshKey] =
+    useState(0);
+  const [messageFocusRequest, setMessageFocusRequest] =
+    useState(null);
   const [notificationPermission, setNotificationPermission] = useState(
     typeof Notification !== "undefined"
       ? Notification.permission
@@ -582,6 +587,52 @@ export default function MessengerLayout({
     await loadConversations();
   };
 
+  const openBookmark = async (bookmark) => {
+    const conversationId =
+      bookmark?.message?.conversation_id;
+    const messageId =
+      bookmark?.message_id ||
+      bookmark?.message?.id;
+
+    if (!conversationId || !messageId) {
+      setActionError(
+        "원본 메시지를 찾을 수 없어요."
+      );
+      return;
+    }
+
+    let rooms = conversationsRef.current;
+
+    let targetRoom = rooms.find(
+      (room) =>
+        room.conversation_id === conversationId
+    );
+
+    if (!targetRoom) {
+      rooms = await loadConversations();
+
+      targetRoom = rooms.find(
+        (room) =>
+          room.conversation_id === conversationId
+      );
+    }
+
+    if (!targetRoom) {
+      setActionError(
+        "이 채팅방에 접근할 수 없어요."
+      );
+      return;
+    }
+
+    setMessageFocusRequest({
+      messageId,
+      key: Date.now(),
+    });
+
+    setActiveMenu("chat");
+    await selectRoom(targetRoom);
+  };
+
   const displayName =
     profile?.name || session.user.email || "사용자";
 
@@ -628,7 +679,16 @@ export default function MessengerLayout({
             <Users size={22} />
           </button>
 
-          <button className="app-nav-button">
+          <button
+            className={`app-nav-button ${
+              activeMenu === "bookmarks" ? "active" : ""
+            }`}
+            title="북마크"
+            onClick={() => {
+              setActiveMenu("bookmarks");
+              setMobileChatOpen(false);
+            }}
+          >
             <Bookmark size={22} />
           </button>
 
@@ -689,6 +749,12 @@ export default function MessengerLayout({
             onlineUserIds={onlineUserIds}
             onSelectEmployee={openDirect}
             refreshKey={profileRefreshKey}
+          />
+        ) : activeMenu === "bookmarks" ? (
+          <BookmarkList
+            conversations={conversations}
+            refreshKey={bookmarkRefreshKey}
+            onOpenBookmark={openBookmark}
           />
         ) : (
           <AdminSidebar profile={profile} />
@@ -760,6 +826,17 @@ export default function MessengerLayout({
               activeMenu === "chat" &&
               openedRoomId === selectedRoom.conversation_id &&
               (!isMobile || mobileChatOpen)
+            }
+            focusMessageId={
+              messageFocusRequest?.messageId || null
+            }
+            focusRequestKey={
+              messageFocusRequest?.key || 0
+            }
+            onBookmarkChange={() =>
+              setBookmarkRefreshKey(
+                (value) => value + 1
+              )
             }
           />
         ) : (

@@ -1,1250 +1,3804 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  Download,
-  FileText,
-  Image as ImageIcon,
-  MoreHorizontal,
-  MoreVertical,
-  Paperclip,
-  Pin,
-  Reply,
-  Search,
-  Users,
-  X,
-} from "lucide-react";
-import { supabase } from "../lib/supabase";
-import {
-  clearConversationAnnouncement,
-  getConversationAnnouncement,
-  getConversationMembers,
-  getConversationMessages,
-  getConversationReactions,
-  getMessageById,
-  getMessageUnreadCounts,
-  markConversationRead,
-  sendAttachmentMessage,
-  sendTextMessage,
-  setConversationAnnouncement,
-  toggleMessageReaction,
-} from "../services/chatService";
-
-function formatTime(value) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+:root{font-family:Inter,Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202631;background:#eef2f6}
+*{box-sizing:border-box}html,body,#root{width:100%;min-width:320px;min-height:100vh;margin:0}body{margin:0;overflow:hidden}button,input,textarea{font:inherit}button{border:0}
+.app-loading{min-height:100vh;display:grid;place-items:center;background:#f5f7fa;color:#667085}
+.login-page{min-height:100vh;display:grid;place-items:center;padding:32px 20px;background:linear-gradient(135deg,#f7f9fc,#eef2f8)}
+.login-card{width:min(430px,100%);padding:36px;background:#fff;border:1px solid #e5e9f0;border-radius:24px;box-shadow:0 24px 70px rgba(31,41,55,.1)}
+.login-brand{display:flex;align-items:center;gap:14px}.brand-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:#edf3ff;color:#567af6}
+.login-brand h1,.login-brand p,.login-heading h2,.login-heading p{margin:0}.login-brand h1{font-size:21px}.login-brand p{margin-top:3px;font-size:13px;color:#8a94a3}
+.login-heading{margin-top:36px;margin-bottom:24px}.login-heading h2{font-size:28px}.login-heading p{margin-top:7px;color:#7b8491;font-size:14px}
+.login-form{display:flex;flex-direction:column;gap:18px}.login-form label>span{display:block;margin-bottom:8px;font-size:13px;font-weight:700;color:#4b5563}
+.input-wrap{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #dfe4ea;border-radius:13px}.input-wrap input{width:100%;border:0;outline:0}
+.primary-button{height:49px;border-radius:13px;background:#567af6;color:#fff;font-weight:800;cursor:pointer}.login-message{padding:11px;border-radius:10px;background:#fff1f2;color:#c2415d;font-size:13px}
+.messenger-shell{width:100vw;height:100vh;display:grid;grid-template-columns:72px 360px minmax(0,1fr);background:#fff}
+.app-rail{display:flex;flex-direction:column;align-items:center;padding:18px 11px;background:#20252d}.app-logo{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:#fff;font-weight:900}
+.app-nav{display:flex;flex-direction:column;gap:9px;margin-top:28px}.app-nav-button{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:transparent;color:#838b98;cursor:pointer}.app-nav-button.active{background:#fff;color:#20252d}.rail-settings{margin-top:auto}
+.middle-column{min-width:0;display:flex;flex-direction:column;border-right:1px solid #e8ebef;background:#fff}.tiny-label{display:block;color:#9aa2ad;font-size:11px;font-weight:700}
+.room-column-header,.employee-header{min-height:82px;display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px}.room-column-header h1,.employee-header h1{margin:2px 0 0;font-size:25px}.round-icon-button{width:39px;height:39px;display:grid;place-items:center;border-radius:11px;background:transparent;color:#727b88;cursor:pointer}
+.room-search,.employee-search{height:42px;display:flex;align-items:center;gap:9px;margin:4px 16px 10px;padding:0 12px;border-radius:12px;background:#f4f6f8;color:#9aa2ad}.room-search input,.employee-search input{width:100%;border:0;outline:0;background:transparent}
+.room-list{flex:1;min-height:0;overflow-y:auto;padding:8px}.room-empty{height:100%;display:grid;place-items:center;color:#929aa5;font-size:12px}
+.conversation-item{width:100%;display:flex;gap:12px;padding:12px;border-radius:14px;background:transparent;text-align:left;cursor:pointer}.conversation-item:hover{background:#f7f8fa}.conversation-item.active{background:#f0f4ff}
+.conversation-avatar-wrap,.employee-avatar-wrap{position:relative;flex:0 0 auto}.conversation-avatar{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;background:#e8edf7;font-weight:800}.conversation-avatar.group,.chat-room-avatar.group{background:#e8efff;color:#567af6}
+.presence-dot{position:absolute;right:-1px;bottom:1px;width:11px;height:11px;border:2px solid #fff;border-radius:50%;background:#b8bec7}.presence-dot.online{background:#54bd75}
+.conversation-copy{min-width:0;flex:1}.conversation-topline,.conversation-bottomline{display:flex;align-items:center;justify-content:space-between;gap:8px}.conversation-topline strong,.conversation-bottomline p{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-topline strong{font-size:14px}.conversation-topline span{color:#a1a8b2;font-size:10px}.member-count{margin-left:5px;color:#9ba3ad;font-size:10px}.conversation-bottomline{margin-top:5px}.conversation-bottomline p{margin:0;color:#8a939f;font-size:12px}
+.employee-panel{flex:1;min-height:0;display:flex;flex-direction:column}.employee-list{flex:1;overflow-y:auto;padding:5px 8px}.employee-card{width:100%;display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:transparent;text-align:left;cursor:pointer}.employee-card:hover{background:#f6f8fb}.employee-avatar{width:46px;height:46px;border-radius:50%}.employee-avatar.fallback{display:grid;place-items:center;background:#e7edf8;color:#53647f;font-weight:800}.employee-avatar.small{width:38px;height:38px}
+.employee-info{min-width:0;flex:1;display:flex;flex-direction:column}.employee-name-line{display:flex;gap:6px;align-items:center}.employee-name-line strong{font-size:14px}.employee-presence{margin-top:3px;color:#9ca4ae;font-size:10px}.employee-presence.online{color:#4fa96b}.employee-meta{margin-top:3px;color:#89929e;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.me-badge,.role-badge{padding:2px 6px;border-radius:999px;font-size:9px;font-weight:800}.me-badge{background:#f1f3f5;color:#7c8591}.role-badge.ceo{background:#fff0d6;color:#a76c00}.role-badge.president{background:#efe9ff;color:#7150b7}
+.my-profile-strip{display:flex;align-items:center;gap:10px;padding:14px 15px;border-top:1px solid #eef0f2}.my-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#e9eef9;font-weight:800}.my-profile-copy{flex:1;display:flex;flex-direction:column}.my-profile-copy strong{font-size:13px}.my-profile-copy span{font-size:10px;color:#4fa96b}.logout-button{background:transparent;color:#9aa2ad;font-size:11px;cursor:pointer}
+.chat-column{position:relative;min-width:0;display:flex;flex-direction:column;background:#f7f8fa}.chat-topbar{min-height:76px;display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid #e8eaed;background:#fff}.chat-room-title{display:flex;align-items:center;gap:11px}.chat-room-avatar{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#e7ecf6;font-weight:800}.chat-room-title h2{margin:0;font-size:15px}.chat-room-title span{display:block;margin-top:3px;color:#999;font-size:11px}.chat-room-title span.online-text{color:#4fa96b}
+.message-area{flex:1;min-height:0;overflow-y:auto;padding:24px 28px 30px}.message-row{display:flex;gap:10px;margin-bottom:16px}.message-row.outgoing{justify-content:flex-end}.message-avatar{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#e5eaf3;font-size:12px;font-weight:800}.message-sender{margin-bottom:5px;color:#68717e;font-size:11px;font-weight:700}.message-line{display:flex;align-items:flex-end;gap:7px}.bubble{max-width:min(520px,54vw);padding:10px 13px;border-radius:5px 15px 15px 15px;background:#fff;box-shadow:0 1px 3px rgba(26,34,46,.05);font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}.outgoing .bubble{border-radius:15px 5px 15px 15px;background:#dce6ff}.message-time{padding-bottom:2px;color:#9aa2ac;font-size:9px}
+.image-message{display:block;max-width:320px;padding:0;border-radius:14px;background:transparent;overflow:hidden;cursor:pointer}.image-message img{display:block;max-width:320px;max-height:360px;width:auto;height:auto;border-radius:14px;object-fit:cover}.broken-file{padding:20px;background:#fff;border-radius:12px;color:#8a939f}
+.file-message{min-width:260px;max-width:360px;display:flex;align-items:center;gap:10px;padding:12px 13px;border-radius:14px;background:#fff;color:#333;text-decoration:none;box-shadow:0 1px 3px rgba(26,34,46,.05)}.outgoing .file-message{background:#dce6ff}.file-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:rgba(86,122,246,.12);color:#567af6}.file-copy{min-width:0;flex:1;display:flex;flex-direction:column}.file-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.file-copy span{margin-top:3px;color:#8d96a1;font-size:10px}
+.composer-wrap{padding:14px 20px 18px;border-top:1px solid #e8eaed;background:#fff}.composer{min-height:48px;display:flex;align-items:flex-end;gap:9px;padding:7px 8px 7px 10px;border:1px solid #dfe3e8;border-radius:15px}.composer-plus{width:34px;height:34px;display:grid;place-items:center;background:transparent;color:#919aa6;cursor:pointer}.composer textarea{flex:1;resize:none;max-height:120px;padding:8px 2px;border:0;outline:0}.send-button{height:34px;padding:0 16px;border-radius:10px;background:#567af6;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.send-button:disabled,.composer-plus:disabled{opacity:.45}
+.typing-row{display:flex;align-items:center;gap:8px;margin:4px 0 12px 44px}.typing-bubble{display:flex;gap:4px;padding:9px 12px;border-radius:14px;background:#fff}.typing-bubble span{width:5px;height:5px;border-radius:50%;background:#a3abb5;animation:typing 1s infinite alternate}.typing-bubble span:nth-child(2){animation-delay:.15s}.typing-bubble span:nth-child(3){animation-delay:.3s}@keyframes typing{from{transform:translateY(0);opacity:.5}to{transform:translateY(-3px);opacity:1}}
+.detail-empty{flex:1;display:grid;place-items:center;align-content:center;text-align:center}.detail-empty-icon{width:72px;height:72px;display:grid;place-items:center;border-radius:22px;background:#edf3ff;color:#567af6}.detail-empty h2{margin:18px 0 7px}.detail-empty p{margin:0;color:#8e97a3;font-size:13px}.top-error{position:absolute;z-index:5;top:12px;left:50%;transform:translateX(-50%);padding:9px 14px;border-radius:999px;background:#fff1f2;color:#bd405b}.composer-error{margin-bottom:7px;color:#bd405b;font-size:11px}
+.modal-backdrop{position:fixed;z-index:100;inset:0;display:grid;place-items:center;padding:24px;background:rgba(20,26,34,.42);backdrop-filter:blur(3px)}.group-modal{width:min(480px,100%);max-height:90vh;display:flex;flex-direction:column;border-radius:22px;background:#fff;overflow:hidden}.group-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid #eef0f3}.group-modal-header h2{margin:3px 0 0}.group-form{min-height:0;display:flex;flex-direction:column;padding:18px 20px 20px}.group-name-label span{display:block;margin-bottom:7px;font-size:12px;font-weight:700}.group-name-label input{width:100%;height:43px;padding:0 12px;border:1px solid #dfe4ea;border-radius:11px}.group-search{height:40px;display:flex;align-items:center;gap:8px;margin-top:14px;padding:0 11px;border-radius:10px;background:#f4f6f8}.group-search input{width:100%;border:0;outline:0;background:transparent}.selected-summary{display:flex;align-items:center;gap:6px;padding:13px 2px 7px;color:#7d8793;font-size:11px}.group-employee-list{max-height:330px;overflow-y:auto;border-top:1px solid #f0f1f3;border-bottom:1px solid #f0f1f3}.group-employee-row{width:100%;display:flex;align-items:center;gap:11px;padding:10px 4px;background:transparent;text-align:left}.group-check{width:20px;height:20px;display:grid;place-items:center;border:1px solid #cfd5dd;border-radius:6px;color:#fff}.group-employee-row.selected .group-check{border-color:#567af6;background:#567af6}.group-employee-copy{min-width:0;flex:1;display:flex;flex-direction:column}.group-employee-copy strong{font-size:13px}.group-employee-copy span{margin-top:3px;color:#9099a4;font-size:10px}.group-error{margin-top:10px;padding:9px;border-radius:9px;background:#fff1f2;color:#bd405b;font-size:11px}.group-create-button{height:44px;margin-top:14px;border-radius:12px;background:#567af6;color:#fff;font-weight:800}
+.image-preview-backdrop{position:fixed;z-index:200;inset:0;display:grid;place-items:center;padding:40px;background:rgba(0,0,0,.78)}.image-preview-large{max-width:min(1100px,90vw);max-height:88vh;object-fit:contain}.image-preview-close{position:fixed;top:22px;right:24px;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;cursor:pointer}
+@media(max-width:720px){.messenger-shell{grid-template-columns:62px 290px minmax(0,1fr)}}@media(max-width:520px){.messenger-shell{grid-template-columns:58px minmax(0,1fr)}.chat-column{display:none}}
+/* STEP 10 HOTFIX */
+.attachment-loading {
+  padding: 10px 13px;
+  border-radius: 12px;
+  background: #fff;
+  color: #969faa;
+  font-size: 11px;
 }
 
-function formatDateTime(value) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+.outgoing .attachment-loading {
+  background: #dce6ff;
+}
+/* =========================================================
+   STEP 11 - 채팅방 관리
+   ========================================================= */
+
+.room-manage-modal {
+  width: min(520px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
 }
 
-function bytes(size) {
-  if (size == null) return "";
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+.manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-bottom: 1px solid #eef0f3;
 }
 
-function replySummary(message) {
-  if (!message) return "메시지를 찾을 수 없어요.";
-  if (message.type === "image") return "📷 이미지";
-  if (message.type === "file") {
-    return `📎 ${message.attachments?.[0]?.file_name || message.content || "파일"}`;
+.manage-header h2 {
+  margin: 3px 0 0;
+  font-size: 19px;
+}
+
+.manage-body {
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+
+.manage-section {
+  padding: 4px 0 20px;
+}
+
+.manage-section + .manage-section {
+  padding-top: 20px;
+  border-top: 1px solid #eef0f3;
+}
+
+.manage-section h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.manage-section p {
+  margin: 5px 0 0;
+  color: #929aa5;
+  font-size: 11px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #7f8995;
+}
+
+.rename-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rename-row input {
+  min-width: 0;
+  flex: 1;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dfe4ea;
+  border-radius: 11px;
+  outline: 0;
+}
+
+.rename-row input:focus {
+  border-color: #9db2f7;
+}
+
+.rename-row button {
+  padding: 0 16px;
+  border-radius: 11px;
+  background: #567af6;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.member-list {
+  margin-top: 12px;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 2px;
+}
+
+.member-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9eef8;
+  color: #52617a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.member-row > div:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.member-row strong {
+  font-size: 12px;
+}
+
+.member-row strong small {
+  color: #567af6;
+  font-size: 9px;
+}
+
+.member-row span {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #929aa5;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manage-search {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 0 11px;
+  border-radius: 10px;
+  background: #f4f6f8;
+  color: #9aa2ad;
+}
+
+.manage-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.invite-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 7px;
+}
+
+.invite-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 3px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.invite-row:hover {
+  background: #fafbfc;
+}
+
+.invite-check {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #cfd5dd;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.invite-row.selected .invite-check {
+  border-color: #567af6;
+  background: #567af6;
+}
+
+.invite-row > div:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-row strong {
+  font-size: 12px;
+}
+
+.invite-row span {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #929aa5;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-empty {
+  padding: 18px 4px;
+  color: #9aa2ad;
+  font-size: 11px;
+  text-align: center;
+}
+
+.invite-button {
+  width: 100%;
+  height: 40px;
+  margin-top: 9px;
+  border-radius: 11px;
+  background: #edf2ff;
+  color: #567af6;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.invite-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.manage-error {
+  margin: 3px 0 13px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #bd405b;
+  font-size: 11px;
+}
+
+.leave-room-button {
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 11px;
+  background: #fff1f2;
+  color: #c44860;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.leave-room-button:disabled,
+.rename-row button:disabled {
+  opacity: 0.5;
+}
+/* =========================================================
+   STEP 12 - 읽음 / 안 읽음
+   ========================================================= */
+
+.room-unread-badge {
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #567af6;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.message-meta.mine {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-bottom: 2px;
+}
+
+.message-meta.mine .message-time {
+  padding: 0;
+}
+
+.message-unread-count {
+  color: #567af6;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+/* =========================================================
+   STEP 13 - 답장(Reply)
+   ========================================================= */
+
+.message-row-replyable {
+  position: relative;
+}
+
+.message-content-stack {
+  position: relative;
+}
+
+.message-hover-actions {
+  position: absolute;
+  top: 2px;
+  right: -38px;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.outgoing .message-hover-actions {
+  right: auto;
+  left: -38px;
+}
+
+.message-row-replyable:hover .message-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.message-hover-actions button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e3e7ec;
+  border-radius: 9px;
+  background: #fff;
+  color: #7c8591;
+  box-shadow: 0 3px 10px rgba(32, 41, 54, 0.08);
+  cursor: pointer;
+}
+
+.message-hover-actions button:hover {
+  color: #567af6;
+}
+
+.bubble-shell {
+  display: flex;
+  max-width: min(520px, 54vw);
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bubble-shell > .bubble,
+.bubble-shell > .image-message,
+.bubble-shell > .file-message,
+.bubble-shell > .attachment-loading {
+  max-width: 100%;
+}
+
+.reply-reference {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 3px solid #8da7f8;
+  border-radius: 8px 8px 5px 5px;
+  background: rgba(86, 122, 246, 0.08);
+  text-align: left;
+  cursor: pointer;
+}
+
+.reply-reference strong {
+  color: #567af6;
+  font-size: 10px;
+}
+
+.reply-reference span {
+  max-width: 360px;
+  overflow: hidden;
+  color: #717b87;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outgoing .reply-reference {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.composer-reply-preview {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f5f7fb;
+}
+
+.composer-reply-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  background: #e8efff;
+  color: #567af6;
+}
+
+.composer-reply-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.composer-reply-copy strong {
+  font-size: 11px;
+  color: #596575;
+}
+
+.composer-reply-copy span {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #9099a4;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-reply-preview > button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  color: #949ca7;
+  cursor: pointer;
+}
+
+.message-highlight {
+  animation: reply-highlight 1.4s ease;
+}
+
+@keyframes reply-highlight {
+  0%,
+  100% {
+    background: transparent;
   }
-  return message.content || "메시지";
+
+  25%,
+  65% {
+    background: rgba(86, 122, 246, 0.12);
+  }
 }
 
-function messageSearchText(message) {
-  const sender =
-    message.sender?.name ||
-    message.sender?.email ||
-    "";
+/* =========================================================
+   STEP 14 FIX - 채팅 스크롤 + 검색
+   ========================================================= */
 
-  const attachmentNames =
-    (message.attachments ?? [])
-      .map((attachment) => attachment.file_name)
-      .join(" ");
+/* 전체 레이아웃이 viewport 높이를 넘지 않도록 고정 */
+.messenger-shell {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
 
-  return [
-    sender,
-    message.content,
-    attachmentNames,
-    replySummary(message.reply_to),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+.middle-column {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 핵심: 채팅 영역 자체는 고정되고 내부 message-area만 스크롤 */
+.chat-column {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f7f8fa;
+}
+
+.chat-topbar {
+  flex: 0 0 auto;
+}
+
+.message-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 24px 28px 30px;
+  scroll-behavior: smooth;
+}
+
+.composer-wrap {
+  flex: 0 0 auto;
+}
+
+/* 채팅 목록도 독립 스크롤 */
+.room-list,
+.employee-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 검색 */
+.room-search {
+  position: relative;
+}
+
+.room-search-clear {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  color: #929aa5;
+  cursor: pointer;
+}
+
+.chat-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.active-search-button {
+  background: #eef2ff !important;
+  color: #567af6 !important;
+}
+
+.message-search-panel {
+  z-index: 20;
+  width: 360px;
+  max-height: calc(100vh - 76px);
+  position: absolute;
+  top: 76px;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid #e8ebef;
+  border-bottom: 1px solid #e8ebef;
+  background: #fff;
+  box-shadow: -10px 16px 35px rgba(28, 36, 48, 0.09);
+}
+
+.message-search-input-wrap {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 14px 8px;
+  padding: 0 10px;
+  border-radius: 11px;
+  background: #f4f6f8;
+  color: #9aa2ad;
+}
+
+.message-search-input-wrap input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.message-search-input-wrap button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  color: #9099a5;
+  cursor: pointer;
+}
+
+.message-search-summary {
+  flex: 0 0 auto;
+  padding: 0 16px 10px;
+  color: #9aa2ad;
+  font-size: 10px;
+}
+
+.message-search-results {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border-top: 1px solid #f0f1f3;
+}
+
+.message-search-result {
+  width: 100%;
+  padding: 12px 15px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.message-search-result:hover {
+  background: #f8f9fb;
+}
+
+.message-search-result-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.message-search-result-top strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-search-result-top span {
+  flex: 0 0 auto;
+  color: #a0a7b0;
+  font-size: 9px;
+}
+
+.message-search-result p {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: #737d89;
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-search-empty {
+  padding: 40px 16px;
+  color: #9aa2ad;
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .message-search-panel {
+    width: min(360px, calc(100vw - 62px));
+  }
 }
 
 
-function dateKey(value) {
-  const date = new Date(value);
+/* =========================================================
+   STEP 15 - 브라우저 알림 / 전체 안 읽음
+   ========================================================= */
 
-  return [
-    date.getFullYear(),
-    date.getMonth() + 1,
-    date.getDate(),
-  ].join("-");
+.rail-icon-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
 }
 
-function formatDateDivider(value) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(new Date(value));
+.rail-unread-badge {
+  position: absolute;
+  top: -10px;
+  right: -13px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid #20252d;
+  border-radius: 999px;
+  background: #ff4d62;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
 }
 
-function groupReactions(reactions, currentUserId) {
-  const grouped = new Map();
+.app-nav-button.active .rail-unread-badge {
+  border-color: #fff;
+}
 
-  for (const reaction of reactions ?? []) {
-    if (!grouped.has(reaction.emoji)) {
-      grouped.set(reaction.emoji, {
-        emoji: reaction.emoji,
-        count: 0,
-        mine: false,
-        names: [],
-      });
-    }
+.app-nav-button.notification-enabled {
+  color: #68c484;
+}
 
-    const item = grouped.get(reaction.emoji);
-    item.count += 1;
 
-    if (reaction.user_id === currentUserId) {
-      item.mine = true;
-    }
+/* =========================================================
+   STEP 16 - 프로필
+   ========================================================= */
 
-    item.names.push(
-      reaction.user?.name ||
-      reaction.user?.email ||
-      "사용자"
-    );
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.my-profile-button {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.my-profile-button:hover {
+  background: #f8f9fb;
+}
+
+.profile-edit-shortcut {
+  color: #8d96a2;
+  font-size: 10px;
+}
+
+.profile-logout {
+  width: calc(100% - 28px);
+  height: 32px;
+  margin: 0 14px 10px;
+  border-radius: 9px;
+  background: #f5f6f8;
+  color: #8d96a2;
+}
+
+.profile-edit-modal {
+  width: min(500px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+}
+
+.profile-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.profile-edit-header h2 {
+  margin: 3px 0 0;
+  font-size: 20px;
+}
+
+.profile-edit-body {
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.profile-avatar-editor {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.profile-avatar-large {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e8edf7;
+  color: #53647f;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.profile-avatar-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-photo-button,
+.profile-photo-remove {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.profile-photo-button {
+  background: #edf2ff;
+  color: #567af6;
+}
+
+.profile-photo-remove {
+  background: #fff1f2;
+  color: #c44860;
+}
+
+.profile-field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.profile-field > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #5f6874;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.profile-field input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dfe4ea;
+  border-radius: 11px;
+  outline: 0;
+}
+
+.profile-field input:focus {
+  border-color: #9db2f7;
+}
+
+.profile-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.profile-email {
+  margin: 3px 0 12px;
+  color: #959da8;
+  font-size: 10px;
+}
+
+.profile-error {
+  margin-bottom: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #bd405b;
+  font-size: 11px;
+}
+
+.profile-save-button {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  background: #567af6;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.profile-save-button:disabled,
+.profile-photo-button:disabled,
+.profile-photo-remove:disabled {
+  opacity: 0.5;
+}
+
+.message-avatar,
+.member-avatar,
+.employee-avatar,
+.conversation-avatar,
+.chat-room-avatar,
+.my-avatar {
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   STEP 17 - 사장 관리자
+   ========================================================= */
+
+.admin-sidebar {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.admin-side-header {
+  padding: 18px 20px;
+}
+
+.admin-side-header h1 {
+  margin: 3px 0 0;
+  font-size: 25px;
+}
+
+.admin-owner-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 4px 14px 16px;
+  padding: 13px;
+  border-radius: 14px;
+  background: #f5f7fb;
+}
+
+.admin-owner-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #e8efff;
+  color: #567af6;
+}
+
+.admin-owner-card > div:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-owner-card strong {
+  font-size: 13px;
+}
+
+.admin-owner-card span {
+  margin-top: 3px;
+  color: #8e97a3;
+  font-size: 10px;
+}
+
+.admin-feature-list {
+  padding: 0 14px;
+}
+
+.admin-feature-list > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 9px;
+  color: #687381;
+  font-size: 12px;
+}
+
+.admin-side-note {
+  margin: 16px;
+  padding: 11px;
+  border-radius: 10px;
+  background: #fff8e7;
+  color: #967221;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.admin-page {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f8f9fb;
+}
+
+.admin-page-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e8ebef;
+  background: #fff;
+}
+
+.admin-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-title-line h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.admin-page-header p {
+  margin: 5px 0 0;
+  color: #929aa5;
+  font-size: 11px;
+}
+
+.admin-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 5px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e9ecf0;
+  background: #fff;
+}
+
+.admin-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: transparent;
+  color: #7c8692;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.admin-tabs button.active {
+  background: #edf2ff;
+  color: #567af6;
+  font-weight: 800;
+}
+
+.admin-alert {
+  flex: 0 0 auto;
+  margin: 10px 16px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.admin-alert.error {
+  background: #fff1f2;
+  color: #bd405b;
+}
+
+.admin-alert.info {
+  background: #eef7f1;
+  color: #34754b;
+}
+
+.admin-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.admin-search {
+  height: 40px;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid #e0e4e9;
+  border-radius: 10px;
+  background: #fff;
+  color: #9aa2ad;
+}
+
+.admin-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.admin-primary-button {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 13px;
+  border-radius: 10px;
+  background: #567af6;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+.admin-create-card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #e1e5eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.admin-create-card h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-form-grid input,
+.admin-form-grid select,
+.admin-table select {
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid #dfe4ea;
+  border-radius: 9px;
+  background: #fff;
+  outline: 0;
+  font-size: 11px;
+}
+
+.admin-create-submit {
+  height: 37px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border-radius: 9px;
+  background: #20252d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e5ea;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #eef0f3;
+  font-size: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-table th {
+  color: #8a939f;
+  font-weight: 800;
+}
+
+.admin-table td > strong,
+.admin-table td > span {
+  display: block;
+}
+
+.admin-table td > span {
+  margin-top: 3px;
+  color: #969ea9;
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.admin-row-actions button {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #f1f3f6;
+  color: #6f7985;
+  cursor: pointer;
+}
+
+.admin-row-actions button.danger {
+  background: #fff1f2;
+  color: #c44860;
+}
+
+.admin-row-actions button:disabled {
+  opacity: 0.35;
+}
+
+.admin-chat-audit {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  overflow: hidden;
+  border-top: 1px solid #e8ebef;
+}
+
+.admin-room-list {
+  overflow-y: auto;
+  border-right: 1px solid #e4e7eb;
+  background: #fff;
+}
+
+.admin-room-list button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f1f3;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-room-list button.active {
+  background: #eef3ff;
+}
+
+.admin-room-list strong {
+  font-size: 11px;
+}
+
+.admin-room-list span,
+.admin-room-list small {
+  margin-top: 4px;
+  overflow: hidden;
+  color: #8c95a0;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-message-view {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-message-view > header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8ebef;
+  background: #fff;
+}
+
+.admin-message-view > header strong {
+  font-size: 12px;
+}
+
+.admin-message-view > header span {
+  margin-top: 3px;
+  color: #939ba5;
+  font-size: 9px;
+}
+
+.admin-message-list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.admin-message-row {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e8ebef;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.admin-message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-message-meta strong {
+  font-size: 10px;
+}
+
+.admin-message-meta span {
+  color: #9ba2ab;
+  font-size: 8px;
+}
+
+.admin-message-row p {
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.admin-message-row a {
+  display: inline-block;
+  margin-top: 8px;
+  color: #567af6;
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.admin-audit-image {
+  max-width: 260px;
+  max-height: 260px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.admin-empty,
+.admin-loading {
+  display: grid;
+  place-items: center;
+  color: #959da8;
+  font-size: 11px;
+}
+
+.admin-empty {
+  height: 100%;
+}
+
+.admin-loading {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: #20252d;
+  color: #fff;
+}
+
+.admin-user-agent {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .admin-form-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
-  return [...grouped.values()];
+  .admin-chat-audit {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
 }
 
-function Avatar({ url, fallback, className = "" }) {
-  return (
-    <div className={className}>
-      {url ? (
-        <img className="avatar-image" src={url} alt="" />
-      ) : (
-        fallback
-      )}
-    </div>
-  );
+
+/* =========================================================
+   KAKAO THEME - FINAL OVERRIDE
+   ========================================================= */
+
+:root {
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --kakao-yellow: #FEE500;
+  --kakao-yellow-hover: #F5DC00;
+  --kakao-brown: #3C1E1E;
+  --kakao-chat-bg: #B2C7D9;
+  --kakao-text: #191919;
+  --kakao-muted: #8B8B8B;
+  --kakao-line: #EAEAEA;
+  --kakao-red: #FF5B63;
 }
 
-export default function ChatView({
-  room,
-  currentUserId,
-  isOtherOnline,
-  onMessageActivity,
-  onOpenManage,
-  onBack,
-  isReadActive = true,
-}) {
-  const [messages, setMessages] = useState([]);
-  const [members, setMembers] = useState([]);
-  const [unreadCounts, setUnreadCounts] = useState({});
-  const [text, setText] = useState("");
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [errorText, setErrorText] = useState("");
-  const [typingUsers, setTypingUsers] = useState({});
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [reactionsByMessage, setReactionsByMessage] = useState({});
-  const [announcement, setAnnouncement] = useState(null);
-  const [messageMenuId, setMessageMenuId] = useState(null);
-  const [reactionPickerId, setReactionPickerId] = useState(null);
-
-  const fileInputRef = useRef(null);
-  const channelRef = useRef(null);
-  const bottomRef = useRef(null);
-  const messageAreaRef = useRef(null);
-  const stickToBottomRef = useRef(true);
-  const messageRefs = useRef({});
-
-  const group = room.conversation_type === "group";
-
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-
-    return messages
-      .filter((message) =>
-        messageSearchText(message).includes(q)
-      )
-      .slice()
-      .reverse();
-  }, [messages, searchQuery]);
-
-  const upsertMessage = (message) => {
-    if (!message) return;
-
-    setMessages((prev) => {
-      const index = prev.findIndex(
-        (item) => item.id === message.id
-      );
-
-      if (index === -1) return [...prev, message];
-
-      const next = [...prev];
-      next[index] = message;
-      return next;
-    });
-  };
-
-  const refreshUnreadCounts = async () => {
-    try {
-      const data = await getMessageUnreadCounts(
-        room.conversation_id
-      );
-      setUnreadCounts(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const markRead = async () => {
-    if (
-      !isReadActive ||
-      document.visibilityState !== "visible"
-    ) {
-      return;
-    }
-
-    try {
-      await markConversationRead(room.conversation_id);
-      await refreshUnreadCounts();
-      onMessageActivity?.();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const loadMembers = async () => {
-    try {
-      const data = await getConversationMembers(
-        room.conversation_id
-      );
-      setMembers(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const loadReactions = async () => {
-    try {
-      const data = await getConversationReactions(
-        room.conversation_id
-      );
-
-      setReactionsByMessage(data);
-    } catch (error) {
-      console.error("반응 조회 실패:", error);
-    }
-  };
-
-  const loadAnnouncement = async () => {
-    try {
-      const data = await getConversationAnnouncement(
-        room.conversation_id
-      );
-
-      setAnnouncement(data);
-    } catch (error) {
-      console.error("공지 조회 실패:", error);
-    }
-  };
-
-  useEffect(() => {
-    stickToBottomRef.current = true;
-    setReplyingTo(null);
-    setSearchOpen(false);
-    setSearchQuery("");
-    setMessageMenuId(null);
-    setReactionPickerId(null);
-    loadReactions();
-    loadAnnouncement();
-
-    let active = true;
-
-    Promise.all([
-      getConversationMessages(room.conversation_id),
-      getConversationMembers(room.conversation_id),
-      getMessageUnreadCounts(room.conversation_id),
-    ]).then(async ([messageData, memberData, countData]) => {
-      if (!active) return;
-
-      setMessages(messageData);
-      setMembers(memberData);
-      setUnreadCounts(countData);
-
-      await markRead();
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [room.conversation_id, isReadActive]);
-
-  useEffect(() => {
-    const refreshMessage = async (messageId) => {
-      try {
-        const full = await getMessageById(messageId);
-        upsertMessage(full);
-
-        if (full.sender_id !== currentUserId) {
-          await markRead();
-        } else {
-          await refreshUnreadCounts();
-        }
-
-        onMessageActivity?.();
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    const channel = supabase
-      .channel(`chat:${room.conversation_id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${room.conversation_id}`,
-        },
-        async (payload) => refreshMessage(payload.new.id)
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${room.conversation_id}`,
-        },
-        async (payload) => refreshMessage(payload.new.id)
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "attachments",
-          filter: `conversation_id=eq.${room.conversation_id}`,
-        },
-        async (payload) => refreshMessage(payload.new.message_id)
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversation_members",
-          filter: `conversation_id=eq.${room.conversation_id}`,
-        },
-        async () => {
-          await loadMembers();
-          await refreshUnreadCounts();
-          onMessageActivity?.();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "message_reactions",
-        },
-        async () => {
-          await loadReactions();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversation_announcements",
-          filter: `conversation_id=eq.${room.conversation_id}`,
-        },
-        async () => {
-          await loadAnnouncement();
-        }
-      )
-      .on("broadcast", { event: "typing" }, ({ payload }) => {
-        if (payload.userId === currentUserId) return;
-
-        setTypingUsers((prev) => ({
-          ...prev,
-          [payload.userId]:
-            payload.typing ? payload.name : null,
-        }));
-
-        if (payload.typing) {
-          setTimeout(() => {
-            setTypingUsers((prev) => ({
-              ...prev,
-              [payload.userId]: null,
-            }));
-          }, 2200);
-        }
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-      channelRef.current = null;
-    };
-  }, [room.conversation_id, currentUserId, isReadActive]);
-
-  useEffect(() => {
-    const handleFocus = () => {
-      if (document.visibilityState === "visible") {
-        markRead();
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener(
-        "visibilitychange",
-        handleFocus
-      );
-    };
-  }, [room.conversation_id, isReadActive]);
-
-  useEffect(() => {
-    if (
-      isReadActive &&
-      document.visibilityState === "visible"
-    ) {
-      markRead();
-    }
-  }, [isReadActive, room.conversation_id]);
-
-  const handleMessageAreaScroll = () => {
-    const area = messageAreaRef.current;
-    if (!area) return;
-
-    const distanceFromBottom =
-      area.scrollHeight - area.scrollTop - area.clientHeight;
-
-    stickToBottomRef.current =
-      distanceFromBottom <= 120;
-  };
-
-  useEffect(() => {
-    if (!stickToBottomRef.current) {
-      return;
-    }
-
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "end",
-    });
-  }, [messages]);
-
-  const currentMember = members.find(
-    (member) => member.user_id === currentUserId
-  );
-
-  const sendTyping = async (typing) => {
-    if (!channelRef.current) return;
-
-    await channelRef.current.send({
-      type: "broadcast",
-      event: "typing",
-      payload: {
-        userId: currentUserId,
-        name: currentMember?.name || "사용자",
-        typing,
-      },
-    });
-  };
-
-  const sendText = async () => {
-    if (!text.trim()) return;
-
-    const value = text;
-    const replyToId = replyingTo?.id ?? null;
-
-    setText("");
-    setReplyingTo(null);
-    await sendTyping(false);
-
-    try {
-      const message = await sendTextMessage({
-        conversationId: room.conversation_id,
-        senderId: currentUserId,
-        content: value,
-        replyToId,
-      });
-
-      upsertMessage(message);
-      await markConversationRead(room.conversation_id);
-      await refreshUnreadCounts();
-      onMessageActivity?.();
-    } catch (error) {
-      setErrorText(error.message);
-      setText(value);
-    }
-  };
-
-  const handleFile = async (file) => {
-    if (!file) return;
-
-    const replyToId = replyingTo?.id ?? null;
-
-    setUploading(true);
-    setErrorText("");
-
-    try {
-      const message = await sendAttachmentMessage({
-        conversationId: room.conversation_id,
-        senderId: currentUserId,
-        file,
-        replyToId,
-      });
-
-      setReplyingTo(null);
-      upsertMessage(message);
-      await markConversationRead(room.conversation_id);
-      await refreshUnreadCounts();
-      onMessageActivity?.();
-    } catch (error) {
-      setErrorText(error.message);
-    } finally {
-      setUploading(false);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const scrollToMessage = (messageId) => {
-    const element = messageRefs.current[messageId];
-    if (!element) return;
-
-    setSearchOpen(false);
-
-    element.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-
-    element.classList.add("message-highlight");
-
-    setTimeout(() => {
-      element.classList.remove("message-highlight");
-    }, 1400);
-  };
-
-
-  const reactToMessage = async (messageId, emoji) => {
-    try {
-      await toggleMessageReaction({
-        messageId,
-        userId: currentUserId,
-        emoji,
-      });
-
-      setReactionPickerId(null);
-      await loadReactions();
-    } catch (error) {
-      setErrorText(error.message);
-    }
-  };
-
-  const pinMessage = async (message) => {
-    try {
-      await setConversationAnnouncement(
-        room.conversation_id,
-        message.id
-      );
-
-      setMessageMenuId(null);
-      await loadAnnouncement();
-    } catch (error) {
-      setErrorText(error.message);
-    }
-  };
-
-  const removeAnnouncement = async () => {
-    try {
-      await clearConversationAnnouncement(
-        room.conversation_id
-      );
-
-      await loadAnnouncement();
-    } catch (error) {
-      setErrorText(error.message);
-    }
-  };
-
-  const downloadAttachment = async (attachment) => {
-    if (!attachment?.signed_url) return;
-
-    try {
-      const response = await fetch(attachment.signed_url);
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = attachment.file_name || "download";
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-
-      URL.revokeObjectURL(objectUrl);
-    } catch (error) {
-      window.open(
-        attachment.signed_url,
-        "_blank",
-        "noopener,noreferrer"
-      );
-    }
-  };
-
-  const typingNames =
-    Object.values(typingUsers).filter(Boolean);
-
-  return (
-    <>
-      <header className="chat-topbar">
-        <div className="chat-room-title">
-          <button
-            type="button"
-            className="mobile-chat-back"
-            onClick={onBack}
-            aria-label="채팅 목록으로 돌아가기"
-          >
-            <ArrowLeft size={22} />
-          </button>
-
-          <Avatar
-            className={`chat-room-avatar ${group ? "group" : ""}`}
-            url={group ? null : room.other_avatar_signed_url}
-            fallback={
-              group ? <Users size={19} /> : room.room_name.slice(0, 1)
-            }
-          />
-
-          <div>
-            <h2>{room.room_name}</h2>
-            <span
-              className={
-                !group && isOtherOnline
-                  ? "online-text"
-                  : ""
-              }
-            >
-              {group
-                ? `${members.length}명 참여 중`
-                : isOtherOnline
-                  ? "온라인"
-                  : "오프라인"}
-            </span>
-          </div>
-        </div>
-
-        <div className="chat-top-actions">
-          <button
-            className={`round-icon-button ${
-              searchOpen ? "active-search-button" : ""
-            }`}
-            title="메시지 검색"
-            onClick={() => {
-              setSearchOpen((prev) => !prev);
-              setSearchQuery("");
-            }}
-          >
-            <Search size={18} />
-          </button>
-
-          <button
-            className="round-icon-button"
-            title="채팅방 설정"
-            onClick={onOpenManage}
-          >
-            <MoreHorizontal size={20} />
-          </button>
-        </div>
-      </header>
-
-      {announcement?.message && (
-        <div className="chat-announcement">
-          <button
-            className="chat-announcement-main"
-            onClick={() =>
-              scrollToMessage(announcement.message.id)
-            }
-          >
-            <Pin size={15} />
-
-            <div>
-              <strong>공지</strong>
-              <span>
-                {replySummary(announcement.message)}
-              </span>
-            </div>
-          </button>
-
-          <button
-            className="chat-announcement-close"
-            title="공지 해제"
-            onClick={removeAnnouncement}
-          >
-            <X size={15} />
-          </button>
-        </div>
-      )}
-
-      {searchOpen && (
-        <div className="message-search-panel">
-          <div className="message-search-input-wrap">
-            <Search size={16} />
-
-            <input
-              autoFocus
-              value={searchQuery}
-              onChange={(event) =>
-                setSearchQuery(event.target.value)
-              }
-              placeholder="이 채팅방에서 검색"
-            />
-
-            <button
-              onClick={() => {
-                setSearchOpen(false);
-                setSearchQuery("");
-              }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          <div className="message-search-summary">
-            {searchQuery.trim()
-              ? `${searchResults.length}개 결과`
-              : "검색어를 입력하세요."}
-          </div>
-
-          {searchQuery.trim() && (
-            <div className="message-search-results">
-              {searchResults.length === 0 ? (
-                <div className="message-search-empty">
-                  검색 결과가 없어요.
-                </div>
-              ) : (
-                searchResults.map((message) => {
-                  const sender =
-                    message.sender?.name ||
-                    message.sender?.email ||
-                    "사용자";
-
-                  const summary =
-                    message.type === "image"
-                      ? "📷 이미지"
-                      : message.type === "file"
-                        ? `📎 ${
-                            message.attachments?.[0]?.file_name ||
-                            message.content ||
-                            "파일"
-                          }`
-                        : message.content;
-
-                  return (
-                    <button
-                      key={message.id}
-                      className="message-search-result"
-                      onClick={() =>
-                        scrollToMessage(message.id)
-                      }
-                    >
-                      <div className="message-search-result-top">
-                        <strong>{sender}</strong>
-                        <span>
-                          {formatDateTime(message.created_at)}
-                        </span>
-                      </div>
-                      <p>{summary}</p>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div
-        className="message-area"
-        ref={messageAreaRef}
-        onScroll={handleMessageAreaScroll}
-      >
-        {messages.map((message, messageIndex) => {
-          const mine =
-            message.sender_id === currentUserId;
-
-          const sender =
-            message.sender?.name ||
-            message.sender?.email ||
-            "사용자";
-
-          const attachment =
-            message.attachments?.[0];
-
-          const isImage =
-            attachment?.mime_type?.startsWith("image/");
-
-          const unread = Number(
-            unreadCounts[message.id] ?? 0
-          );
-
-          const showDateDivider =
-            messageIndex === 0 ||
-            dateKey(messages[messageIndex - 1].created_at) !==
-              dateKey(message.created_at);
-
-          const repliedSender =
-            message.reply_to?.sender?.name ||
-            message.reply_to?.sender?.email ||
-            "사용자";
-
-          return (
-            <div
-              key={message.id}
-              className="message-with-date"
-            >
-              {showDateDivider && (
-                <div className="date-divider">
-                  <span>
-                    {formatDateDivider(message.created_at)}
-                  </span>
-                </div>
-              )}
-
-              <div
-                ref={(node) => {
-                if (node) {
-                  messageRefs.current[message.id] = node;
-                }
-              }}
-              className={`message-row message-row-replyable ${
-                mine ? "outgoing" : "incoming"
-              }`}
-            >
-              {!mine && (
-                <Avatar
-                  className="message-avatar"
-                  url={message.sender?.avatar_signed_url}
-                  fallback={sender.slice(0, 1)}
-                />
-              )}
-
-              <div className="message-content-stack">
-                {!mine && (
-                  <div className="message-sender">
-                    {sender}
-                  </div>
-                )}
-
-                <div className="message-action-anchor">
-                  <button
-                    className="message-more-button"
-                    title="메시지 메뉴"
-                    onClick={() => {
-                      setMessageMenuId(
-                        messageMenuId === message.id
-                          ? null
-                          : message.id
-                      );
-                      setReactionPickerId(null);
-                    }}
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-
-                  {messageMenuId === message.id && (
-                    <div className="message-action-menu">
-                      <button
-                        onClick={() => {
-                          setReplyingTo(message);
-                          setMessageMenuId(null);
-                        }}
-                      >
-                        <Reply size={15} />
-                        <span>답장</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setReactionPickerId(message.id);
-                          setMessageMenuId(null);
-                        }}
-                      >
-                        <span className="reaction-action-face">
-                          ☺
-                        </span>
-                        <span>반응</span>
-                      </button>
-
-                      <button
-                        onClick={() => pinMessage(message)}
-                      >
-                        <Pin size={14} />
-                        <span>공지 고정</span>
-                      </button>
-                    </div>
-                  )}
-
-                </div>
-
-                <div className="message-line">
-                  {mine && (
-                    <div className="message-meta mine">
-                      {unread > 0 && (
-                        <span className="message-unread-count">
-                          {unread}
-                        </span>
-                      )}
-
-                      <span className="message-time">
-                        {formatTime(
-                          message.created_at
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="bubble-shell">
-                    {message.reply_to && (
-                      <button
-                        className="reply-reference"
-                        onClick={() =>
-                          scrollToMessage(
-                            message.reply_to.id
-                          )
-                        }
-                      >
-                        <strong>{repliedSender}</strong>
-                        <span>
-                          {replySummary(message.reply_to)}
-                        </span>
-                      </button>
-                    )}
-
-                    {attachment ? (
-                      isImage ? (
-                        <button
-                          className="image-message"
-                          onClick={() =>
-                            attachment.signed_url &&
-                            setPreviewImage(
-                              attachment.signed_url
-                            )
-                          }
-                        >
-                          {attachment.signed_url ? (
-                            <img
-                              src={attachment.signed_url}
-                              alt={attachment.file_name}
-                            />
-                          ) : (
-                            <div className="broken-file">
-                              <ImageIcon size={22} />
-                              이미지 불러오기 실패
-                            </div>
-                          )}
-                        </button>
-                      ) : (
-                        <div className="file-message final-file-card">
-                          <div className="file-icon">
-                            <FileText size={22} />
-                          </div>
-
-                          <div className="file-copy">
-                            <strong>
-                              {attachment.file_name}
-                            </strong>
-                            <span>
-                              {bytes(attachment.file_size)}
-                            </span>
-                          </div>
-
-                          <button
-                            className="file-download-button"
-                            title="다운로드"
-                            onClick={() =>
-                              downloadAttachment(attachment)
-                            }
-                          >
-                            <Download size={17} />
-                          </button>
-                        </div>
-                      )
-                    ) : message.type === "image" ||
-                      message.type === "file" ? (
-                      <div className="attachment-loading">
-                        첨부파일 불러오는 중...
-                      </div>
-                    ) : (
-                      <div className="bubble">
-                        {message.content}
-                      </div>
-                    )}
-                  </div>
-
-                  {groupReactions(
-                    reactionsByMessage[message.id],
-                    currentUserId
-                  ).length > 0 && (
-                    <div className="message-reactions">
-                      {groupReactions(
-                        reactionsByMessage[message.id],
-                        currentUserId
-                      ).map((reaction) => (
-                        <button
-                          key={reaction.emoji}
-                          className={
-                            reaction.mine ? "mine" : ""
-                          }
-                          title={reaction.names.join(", ")}
-                          onClick={() =>
-                            reactToMessage(
-                              message.id,
-                              reaction.emoji
-                            )
-                          }
-                        >
-                          <span>{reaction.emoji}</span>
-                          <small>{reaction.count}</small>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {!mine && (
-                    <span className="message-time">
-                      {formatTime(message.created_at)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            </div>
-          );
-        })}
-
-        {typingNames.length > 0 && (
-          <div className="typing-row">
-            <div className="typing-bubble">
-              <span />
-              <span />
-              <span />
-            </div>
-
-            <small>
-              {typingNames.slice(0, 2).join(", ")}
-              님이 입력 중...
-            </small>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      {reactionPickerId && (
-        <>
-          <button
-            type="button"
-            className="reaction-picker-backdrop"
-            aria-label="반응 선택 닫기"
-            onClick={() => setReactionPickerId(null)}
-          />
-
-          <div
-            className="reaction-picker-global"
-            role="dialog"
-            aria-label="메시지 반응 선택"
-          >
-            {["👍", "❤️", "😂", "😮", "😢", "🙏"].map(
-              (emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() =>
-                    reactToMessage(
-                      reactionPickerId,
-                      emoji
-                    )
-                  }
-                >
-                  {emoji}
-                </button>
-              )
-            )}
-          </div>
-        </>
-      )}
-
-      <div className="composer-wrap">
-        {errorText && (
-          <div className="composer-error">
-            {errorText}
-          </div>
-        )}
-
-        {replyingTo && (
-          <div className="composer-reply-preview">
-            <div className="composer-reply-icon">
-              <Reply size={16} />
-            </div>
-
-            <div className="composer-reply-copy">
-              <strong>
-                {replyingTo.sender?.name ||
-                  replyingTo.sender?.email ||
-                  "사용자"}
-                에게 답장
-              </strong>
-
-              <span>{replySummary(replyingTo)}</span>
-            </div>
-
-            <button
-              title="답장 취소"
-              onClick={() =>
-                setReplyingTo(null)
-              }
-            >
-              <X size={17} />
-            </button>
-          </div>
-        )}
-
-        <div className="composer">
-          <input
-            ref={fileInputRef}
-            type="file"
-            hidden
-            onChange={(event) =>
-              handleFile(
-                event.target.files?.[0]
-              )
-            }
-          />
-
-          <button
-            className="composer-plus"
-            type="button"
-            title="파일 첨부"
-            onClick={() =>
-              fileInputRef.current?.click()
-            }
-            disabled={uploading}
-          >
-            <Paperclip size={20} />
-          </button>
-
-          <textarea
-            placeholder={
-              uploading
-                ? "파일 업로드 중..."
-                : replyingTo
-                  ? "답장을 입력하세요."
-                  : "메시지를 입력하세요."
-            }
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              sendTyping(
-                Boolean(
-                  event.target.value.trim()
-                )
-              );
-            }}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                !event.shiftKey
-              ) {
-                event.preventDefault();
-                sendText();
-              }
-
-              if (
-                event.key === "Escape" &&
-                replyingTo
-              ) {
-                setReplyingTo(null);
-              }
-            }}
-            disabled={uploading}
-          />
-
-          <button
-            className="send-button"
-            onClick={sendText}
-            disabled={
-              !text.trim() || uploading
-            }
-          >
-            전송
-          </button>
-        </div>
-      </div>
-
-      {previewImage && (
-        <div
-          className="image-preview-backdrop"
-          onClick={() =>
-            setPreviewImage(null)
-          }
-        >
-          <button
-            className="image-preview-close"
-            onClick={() =>
-              setPreviewImage(null)
-            }
-          >
-            <X size={24} />
-          </button>
-
-          <img
-            className="image-preview-large"
-            src={previewImage}
-            alt=""
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          />
-        </div>
-      )}
-    </>
-  );
+/* 전체 */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #ffffff;
+  color: var(--kakao-text);
+}
+
+/* 레이아웃 강제 복구 */
+.messenger-shell {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: 78px 360px minmax(0, 1fr) !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+}
+
+.app-rail {
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 16px 10px !important;
+  overflow: hidden !important;
+  background: var(--kakao-yellow) !important;
+  border-right: 1px solid rgba(0,0,0,.06) !important;
+}
+
+.middle-column {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+  border-right: 1px solid var(--kakao-line) !important;
+}
+
+.chat-column {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: var(--kakao-chat-bg) !important;
+}
+
+/* 좌측 레일 */
+.app-logo {
+  width: 48px !important;
+  height: 48px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  color: var(--kakao-brown) !important;
+  font-weight: 900 !important;
+  box-shadow: none !important;
+}
+
+.app-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-top: 24px !important;
+}
+
+.app-nav-button {
+  width: 48px !important;
+  height: 48px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  color: rgba(60,30,30,.45) !important;
+  cursor: pointer !important;
+}
+
+.app-nav-button:hover {
+  background: rgba(60,30,30,.06) !important;
+  color: rgba(60,30,30,.82) !important;
+}
+
+.app-nav-button.active {
+  background: transparent !important;
+  color: var(--kakao-brown) !important;
+  box-shadow: none !important;
+}
+
+.rail-settings {
+  margin-top: auto !important;
+}
+
+/* 목록 헤더 */
+.room-column-header,
+.employee-header {
+  min-height: 84px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 18px 20px 12px !important;
+  background: #ffffff !important;
+}
+
+.room-column-header h1,
+.employee-header h1 {
+  margin: 4px 0 0 !important;
+  font-size: 24px !important;
+  color: #191919 !important;
+}
+
+.tiny-label {
+  color: #9A9A9A !important;
+  font-size: 10px !important;
+}
+
+/* 검색 */
+.room-search,
+.employee-search {
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 14px 8px !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  background: #F5F5F5 !important;
+}
+
+.room-search input,
+.employee-search input {
+  width: 100% !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  color: #191919 !important;
+}
+
+/* 채팅방/직원 목록 */
+.room-list,
+.employee-list {
+  min-height: 0 !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 4px 10px 12px !important;
+}
+
+.conversation-item,
+.employee-card {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.conversation-item:hover,
+.employee-card:hover {
+  background: #F7F7F7 !important;
+}
+
+.conversation-item.active {
+  background: #F2F2F2 !important;
+}
+
+.conversation-avatar,
+.employee-avatar {
+  width: 48px !important;
+  height: 48px !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  background: #EEEEEE !important;
+  color: #666666 !important;
+}
+
+.conversation-copy,
+.employee-info {
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.conversation-topline,
+.conversation-bottomline,
+.employee-name-line {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.conversation-topline strong,
+.employee-name-line strong {
+  color: #191919 !important;
+  font-size: 13px !important;
+}
+
+.conversation-bottomline p,
+.employee-meta {
+  margin: 4px 0 0 !important;
+  overflow: hidden !important;
+  color: #8A8A8A !important;
+  font-size: 10px !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.room-unread-badge {
+  min-width: 20px !important;
+  height: 20px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 6px !important;
+  border-radius: 999px !important;
+  background: var(--kakao-red) !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
+
+/* 하단 프로필 */
+.my-profile-strip {
+  min-height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  border-top: 1px solid #EAEAEA !important;
+  background: #ffffff !important;
+}
+
+.my-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  background: #EEEEEE !important;
+}
+
+.my-profile-copy {
+  min-width: 0 !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.profile-logout {
+  width: calc(100% - 28px) !important;
+  height: 30px !important;
+  margin: 0 14px 10px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: #F7F7F7 !important;
+  color: #888 !important;
+}
+
+/* 채팅 상단 */
+.chat-topbar {
+  min-height: 76px !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 13px 20px !important;
+  border-bottom: 1px solid #EAEAEA !important;
+  background: #ffffff !important;
+}
+
+.chat-room-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.chat-room-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  background: #EEEEEE !important;
+}
+
+.chat-room-title h2 {
+  margin: 0 !important;
+  color: #191919 !important;
+  font-size: 15px !important;
+}
+
+.chat-room-title span {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #999 !important;
+  font-size: 9px !important;
+}
+
+.chat-top-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* 채팅방 본체 */
+.message-area {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 26px 28px 30px !important;
+  background: var(--kakao-chat-bg) !important;
+  background-image: none !important;
+}
+
+.message-row {
+  display: flex !important;
+  gap: 9px !important;
+  margin-bottom: 14px !important;
+}
+
+.message-row.outgoing {
+  justify-content: flex-end !important;
+}
+
+.message-avatar {
+  width: 34px !important;
+  height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  background: #ECECEC !important;
+}
+
+.message-content-stack {
+  position: relative !important;
+}
+
+.message-sender {
+  margin-bottom: 5px !important;
+  color: #555 !important;
+  font-size: 10px !important;
+}
+
+.message-line {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 6px !important;
+}
+
+.bubble-shell {
+  display: flex !important;
+  max-width: min(520px, 54vw) !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.bubble {
+  padding: 10px 13px !important;
+  border-radius: 4px 12px 12px 12px !important;
+  background: #ffffff !important;
+  color: #191919 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+  white-space: pre-wrap !important;
+}
+
+.outgoing .bubble {
+  border-radius: 12px 4px 12px 12px !important;
+  background: var(--kakao-yellow) !important;
+  color: #191919 !important;
+}
+
+.message-time {
+  color: rgba(25,25,25,.55) !important;
+  font-size: 8px !important;
+}
+
+.message-unread-count {
+  color: #6A5700 !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+/* 이미지/파일 */
+.image-message {
+  display: block !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+}
+
+.image-message img {
+  display: block !important;
+  max-width: 380px !important;
+  max-height: 420px !important;
+  border-radius: 12px !important;
+  object-fit: contain !important;
+}
+
+.file-message {
+  min-width: 260px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 11px 12px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #191919 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.outgoing .file-message {
+  background: var(--kakao-yellow) !important;
+}
+
+/* 입력창 */
+.composer-wrap {
+  flex: 0 0 auto !important;
+  padding: 12px 18px 15px !important;
+  border-top: 1px solid #EAEAEA !important;
+  background: #ffffff !important;
+}
+
+.composer {
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  padding: 7px 8px !important;
+  border: 1px solid #DCDCDC !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.composer textarea {
+  min-height: 34px !important;
+  max-height: 120px !important;
+  flex: 1 !important;
+  resize: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  color: #191919 !important;
+  font-size: 12px !important;
+}
+
+.send-button {
+  height: 34px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: var(--kakao-yellow) !important;
+  color: var(--kakao-brown) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+.send-button:disabled {
+  opacity: .45 !important;
+}
+
+.round-icon-button,
+.composer-plus {
+  border: 0 !important;
+}
+
+/* 답장 */
+.reply-reference {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-left: 3px solid rgba(0,0,0,.25) !important;
+  border-radius: 8px !important;
+  background: rgba(0,0,0,.05) !important;
+  text-align: left !important;
+}
+
+.outgoing .reply-reference {
+  background: rgba(255,255,255,.30) !important;
+}
+
+/* 로그인 */
+.login-page {
+  min-height: 100vh !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 28px !important;
+  background: var(--kakao-yellow) !important;
+  background-image: none !important;
+}
+
+.login-card {
+  width: min(430px, 100%) !important;
+  padding: 38px !important;
+  border-radius: 24px !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 48px rgba(60,30,30,.14) !important;
+}
+
+/* 버튼 */
+.primary-button,
+.group-create-button,
+.profile-save-button,
+.rename-row button,
+.admin-primary-button {
+  background: var(--kakao-yellow) !important;
+  color: var(--kakao-brown) !important;
+}
+
+/* 빈 화면 */
+.detail-empty {
+  height: 100% !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  background: var(--kakao-chat-bg) !important;
+}
+
+/* 프로필 사진 */
+.avatar-image {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  border-radius: inherit !important;
+  object-fit: cover !important;
+}
+
+/* 관리자도 최소 레이아웃 유지 */
+.admin-page {
+  min-height: 0 !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.admin-tabs {
+  display: flex !important;
+  gap: 5px !important;
+}
+
+.admin-tabs button.active {
+  background: var(--kakao-yellow) !important;
+  color: var(--kakao-brown) !important;
+}
+
+/* 알림 배지 */
+.rail-unread-badge {
+  background: var(--kakao-red) !important;
+  color: #fff !important;
+  border-color: var(--kakao-yellow) !important;
+}
+/* =========================================================
+   FINAL FEATURES
+   이모지 반응 / 파일 다운로드 / 공지 / 날짜 구분선
+   ========================================================= */
+
+.message-with-date {
+  display: contents;
+}
+
+.date-divider {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 22px 0 18px;
+}
+
+.date-divider span {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.10);
+  color: rgba(25, 25, 25, 0.70);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.final-actions {
+  display: flex;
+  gap: 4px;
+  width: max-content;
+}
+
+.final-actions button {
+  flex: 0 0 auto;
+}
+
+.reaction-action-face {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.reaction-picker {
+  position: absolute;
+  top: 34px;
+  z-index: 25;
+  display: flex;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+}
+
+.incoming .reaction-picker {
+  left: 0;
+}
+
+.outgoing .reaction-picker {
+  right: 0;
+}
+
+.reaction-picker button {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.reaction-picker button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-self: flex-end;
+}
+
+.incoming .message-reactions {
+  align-self: flex-start;
+}
+
+.message-reactions button {
+  min-width: 34px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+}
+
+.message-reactions button.mine {
+  border-color: rgba(254, 229, 0, 0.85);
+  background: rgba(254, 229, 0, 0.22);
+}
+
+.message-reactions span {
+  font-size: 13px;
+}
+
+.message-reactions small {
+  color: #666;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.chat-announcement {
+  min-height: 48px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+}
+
+.chat-announcement-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 7px;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-announcement-main:hover {
+  background: #f7f7f7;
+}
+
+.chat-announcement-main > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-announcement-main strong {
+  color: #191919;
+  font-size: 10px;
+}
+
+.chat-announcement-main span {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #777;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-announcement-close {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+}
+
+.chat-announcement-close:hover {
+  background: #f3f3f3;
+}
+
+.final-file-card {
+  position: relative;
+}
+
+.file-download-button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+  cursor: pointer;
+}
+
+.file-download-button:hover {
+  background: rgba(0, 0, 0, 0.10);
+}
+
+.outgoing .file-download-button {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.outgoing .file-download-button:hover {
+  background: rgba(255, 255, 255, 0.52);
+}
+/* =========================================================
+   FINAL FEATURES HOTFIX
+   이모지 반응 / 공지 버튼 hover 표시 수정
+   ========================================================= */
+
+.message-row-replyable {
+  position: relative !important;
+}
+
+.message-content-stack {
+  position: relative !important;
+}
+
+/* 기존 STEP13의 right:-38px / left:-38px 제거 */
+.message-hover-actions.final-actions {
+  position: absolute !important;
+  top: -34px !important;
+  left: 0 !important;
+  right: auto !important;
+
+  z-index: 100 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  width: max-content !important;
+
+  padding: 4px !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.14) !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+
+  transform: translateY(4px) !important;
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease,
+    visibility 0.14s ease !important;
+}
+
+/* 내가 보낸 메시지는 오른쪽 정렬 */
+.message-row.outgoing .message-hover-actions.final-actions {
+  left: auto !important;
+  right: 0 !important;
+}
+
+/* 메시지 줄 전체에 마우스를 올리면 표시 */
+.message-row-replyable:hover .message-hover-actions.final-actions,
+.message-content-stack:hover .message-hover-actions.final-actions,
+.message-hover-actions.final-actions:hover {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+
+.message-hover-actions.final-actions button {
+  width: 30px !important;
+  height: 30px !important;
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+
+  background: transparent !important;
+  color: #555 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.message-hover-actions.final-actions button:hover {
+  background: #f0f0f0 !important;
+  color: #191919 !important;
+}
+
+.reaction-action-face {
+  display: block !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+/* 이모지 선택창도 말풍선 위에서 잘 보이도록 */
+.reaction-picker {
+  position: absolute !important;
+  top: 4px !important;
+  z-index: 110 !important;
+
+  display: flex !important;
+  gap: 3px !important;
+
+  padding: 6px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+
+  background: #fff !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.message-row.incoming .reaction-picker {
+  left: 100% !important;
+  margin-left: 8px !important;
+}
+
+.message-row.outgoing .reaction-picker {
+  right: 100% !important;
+  margin-right: 8px !important;
+}
+
+.reaction-picker button {
+  width: 32px !important;
+  height: 32px !important;
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+
+  background: transparent !important;
+  font-size: 17px !important;
+  cursor: pointer !important;
+}
+
+.reaction-picker button:hover {
+  background: #f3f3f3 !important;
+}
+/* =========================================================
+   FINAL MESSAGE MENU HOTFIX
+   hover 대신 항상 보이는 ⋯ 버튼
+   ========================================================= */
+
+.message-content-stack {
+  position: relative !important;
+}
+
+.message-action-anchor {
+  position: absolute !important;
+  top: 18px !important;
+  z-index: 150 !important;
+}
+
+.message-row.incoming .message-action-anchor {
+  left: 100% !important;
+  margin-left: 6px !important;
+}
+
+.message-row.outgoing .message-action-anchor {
+  right: 100% !important;
+  margin-right: 6px !important;
+}
+
+.message-more-button {
+  width: 28px !important;
+  height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.74) !important;
+  color: #555 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08) !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.message-more-button:hover {
+  background: #fff !important;
+  color: #191919 !important;
+}
+
+.message-action-menu {
+  position: absolute !important;
+  top: 34px !important;
+  z-index: 170 !important;
+  width: 132px !important;
+  padding: 5px !important;
+  border: 1px solid rgba(0,0,0,.08) !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  box-shadow: 0 8px 26px rgba(0,0,0,.16) !important;
+}
+
+.message-row.incoming .message-action-menu {
+  left: 0 !important;
+}
+
+.message-row.outgoing .message-action-menu {
+  right: 0 !important;
+}
+
+.message-action-menu button {
+  width: 100% !important;
+  height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 9px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #333 !important;
+  font-size: 11px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.message-action-menu button:hover {
+  background: #f3f3f3 !important;
+}
+
+.reaction-picker.fixed-picker {
+  position: absolute !important;
+  top: 34px !important;
+  z-index: 180 !important;
+  display: flex !important;
+  gap: 3px !important;
+  padding: 6px !important;
+  border: 1px solid rgba(0,0,0,.08) !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 8px 26px rgba(0,0,0,.16) !important;
+}
+
+.message-row.incoming .reaction-picker.fixed-picker {
+  left: 0 !important;
+  right: auto !important;
+  margin: 0 !important;
+}
+
+.message-row.outgoing .reaction-picker.fixed-picker {
+  right: 0 !important;
+  left: auto !important;
+  margin: 0 !important;
+}
+
+.reaction-picker.fixed-picker button {
+  width: 32px !important;
+  height: 32px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  font-size: 17px !important;
+  cursor: pointer !important;
+}
+
+.reaction-picker.fixed-picker button:hover {
+  background: #f3f3f3 !important;
+}
+
+/* 예전 hover 액션바는 완전히 숨김 */
+.message-hover-actions.final-actions {
+  display: none !important;
+}
+/* =========================================================
+   FINAL FEATURES
+   이모지 반응 / 공지 / 날짜 / 다운로드
+   ========================================================= */
+
+.message-with-date {
+  display: contents;
+}
+
+.date-divider {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 16px;
+}
+
+.date-divider span {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.10);
+  color: rgba(25, 25, 25, 0.72);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.message-content-stack {
+  position: relative;
+}
+
+.message-action-anchor {
+  position: absolute;
+  top: 18px;
+  z-index: 150;
+}
+
+.message-row.incoming .message-action-anchor {
+  left: 100%;
+  margin-left: 6px;
+}
+
+.message-row.outgoing .message-action-anchor {
+  right: 100%;
+  margin-right: 6px;
+}
+
+.message-more-button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #555;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.message-more-button:hover {
+  background: #fff;
+  color: #191919;
+}
+
+.message-action-menu {
+  position: absolute;
+  top: 34px;
+  z-index: 170;
+  width: 132px;
+  padding: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.16);
+}
+
+.message-row.incoming .message-action-menu {
+  left: 0;
+}
+
+.message-row.outgoing .message-action-menu {
+  right: 0;
+}
+
+.message-action-menu button {
+  width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #333;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.message-action-menu button:hover {
+  background: #f3f3f3;
+}
+
+.reaction-action-face {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.reaction-picker.fixed-picker {
+  position: absolute;
+  top: 34px;
+  z-index: 180;
+  display: flex;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.16);
+}
+
+.message-row.incoming .reaction-picker.fixed-picker {
+  left: 0;
+}
+
+.message-row.outgoing .reaction-picker.fixed-picker {
+  right: 0;
+}
+
+.reaction-picker.fixed-picker button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.reaction-picker.fixed-picker button:hover {
+  background: #f3f3f3;
+}
+
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.message-reactions button {
+  min-width: 34px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+}
+
+.message-reactions button.mine {
+  border-color: rgba(254, 229, 0, 0.95);
+  background: rgba(254, 229, 0, 0.24);
+}
+
+.message-reactions span {
+  font-size: 13px;
+}
+
+.message-reactions small {
+  color: #666;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.chat-announcement {
+  min-height: 48px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+}
+
+.chat-announcement-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-announcement-main:hover {
+  background: #f7f7f7;
+}
+
+.chat-announcement-main > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-announcement-main strong {
+  color: #191919;
+  font-size: 10px;
+}
+
+.chat-announcement-main span {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #777;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-announcement-close {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+}
+
+.chat-announcement-close:hover {
+  background: #f3f3f3;
+}
+
+.final-file-card {
+  position: relative;
+}
+
+.file-download-button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+  cursor: pointer;
+}
+
+.file-download-button:hover {
+  background: rgba(0, 0, 0, 0.10);
+}
+/* =========================================================
+   XX MESSENGER - MOBILE APP LAYOUT
+   PC 레이아웃은 유지 / 모바일은 카카오톡처럼 화면 전환
+   ========================================================= */
+
+.mobile-chat-back {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .messenger-shell {
+    grid-template-columns: 68px 320px minmax(0, 1fr) !important;
+  }
+
+  .bubble-shell {
+    max-width: min(440px, 65vw) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body {
+    overscroll-behavior: none;
+  }
+
+  .messenger-shell {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(0, 1fr) 58px !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  /* PC 왼쪽 레일 -> 모바일 하단 메뉴 */
+  .app-rail {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding:
+      5px
+      max(8px, env(safe-area-inset-right))
+      max(5px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left)) !important;
+    overflow: visible !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-right: 0 !important;
+    background: var(--kakao-yellow) !important;
+    z-index: 80;
+  }
+
+  .app-logo {
+    display: none !important;
+  }
+
+  .app-nav {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-evenly !important;
+    gap: 0 !important;
+    margin: 0 !important;
+  }
+
+  .app-nav-button {
+    width: 46px !important;
+    height: 46px !important;
+    flex: 0 0 46px !important;
+    border-radius: 13px !important;
+  }
+
+  .app-nav-button.active {
+    background: rgba(60, 30, 30, 0.12) !important;
+  }
+
+  .rail-settings {
+    position: static !important;
+    margin: 0 !important;
+    flex: 0 0 46px !important;
+  }
+
+  /* 목록 화면 */
+  .middle-column {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    overflow: hidden !important;
+    border-right: 0 !important;
+    background: #fff !important;
+  }
+
+  .room-column-header,
+  .employee-header {
+    min-height: 70px !important;
+    padding:
+      max(14px, env(safe-area-inset-top))
+      17px
+      10px !important;
+  }
+
+  .room-column-header h1,
+  .employee-header h1 {
+    font-size: 24px !important;
+  }
+
+  .room-search,
+  .employee-search {
+    height: 44px !important;
+    margin: 5px 13px 8px !important;
+  }
+
+  .room-list,
+  .employee-list {
+    padding: 5px 7px 10px !important;
+  }
+
+  .conversation-item,
+  .employee-card {
+    min-height: 67px !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .conversation-avatar,
+  .employee-avatar {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .conversation-topline strong,
+  .employee-name-line strong {
+    font-size: 14px !important;
+  }
+
+  .conversation-bottomline p,
+  .employee-meta {
+    font-size: 11px !important;
+  }
+
+  .my-profile-strip {
+    flex: 0 0 auto !important;
+    padding: 10px 14px !important;
+  }
+
+  .profile-logout {
+    flex: 0 0 auto !important;
+    padding: 7px 14px 10px !important;
+  }
+
+  /* 채팅 화면: 기본은 숨김 */
+  .chat-column {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: none !important;
+    overflow: hidden !important;
+    background: var(--kakao-chat-bg) !important;
+    z-index: 40;
+  }
+
+  .messenger-shell.mobile-chat-open .middle-column {
+    display: none !important;
+  }
+
+  .messenger-shell.mobile-chat-open .chat-column {
+    display: flex !important;
+  }
+
+  /* 채팅 상단 */
+  .chat-topbar {
+    min-height: 64px !important;
+    padding:
+      max(8px, env(safe-area-inset-top))
+      9px
+      7px !important;
+    background: #fff !important;
+  }
+
+  .chat-room-title {
+    min-width: 0 !important;
+    gap: 8px !important;
+  }
+
+  .mobile-chat-back {
+    width: 38px;
+    height: 38px;
+    display: grid !important;
+    flex: 0 0 38px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #222;
+    cursor: pointer;
+  }
+
+  .mobile-chat-back:active {
+    background: #f1f1f1;
+  }
+
+  .chat-room-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    flex: 0 0 38px !important;
+  }
+
+  .chat-room-title > div:last-child {
+    min-width: 0 !important;
+  }
+
+  .chat-room-title h2 {
+    max-width: 42vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 14px !important;
+  }
+
+  .chat-room-title span {
+    font-size: 9px !important;
+  }
+
+  .chat-top-actions {
+    flex: 0 0 auto !important;
+  }
+
+  .chat-top-actions .round-icon-button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* 공지 / 검색 */
+  .chat-announcement {
+    min-height: 44px !important;
+  }
+
+  .message-search-panel {
+    top: 64px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: calc(100% - 64px) !important;
+    border-left: 0 !important;
+  }
+
+  /* 메시지 */
+  .message-area {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 16px 10px 18px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-row {
+    gap: 7px !important;
+    margin-bottom: 13px !important;
+  }
+
+  .message-avatar {
+    width: 31px !important;
+    height: 31px !important;
+    flex: 0 0 31px !important;
+  }
+
+  .message-content-stack {
+    max-width: calc(100vw - 58px) !important;
+  }
+
+  .bubble-shell {
+    max-width: 72vw !important;
+  }
+
+  .bubble {
+    max-width: 100% !important;
+    padding: 9px 11px !important;
+    font-size: 12px !important;
+    line-height: 1.48 !important;
+  }
+
+  .message-sender {
+    font-size: 10px !important;
+  }
+
+  .message-time {
+    font-size: 8px !important;
+  }
+
+  .image-message,
+  .image-message img {
+    max-width: min(68vw, 300px) !important;
+    max-height: 360px !important;
+  }
+
+  .file-message {
+    width: min(68vw, 280px) !important;
+    min-width: 0 !important;
+    max-width: 280px !important;
+  }
+
+  .message-action-menu,
+  .reaction-picker.fixed-picker {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  /* 입력창 */
+  .composer-wrap {
+    flex: 0 0 auto !important;
+    padding:
+      8px
+      8px
+      max(8px, env(safe-area-inset-bottom))
+      8px !important;
+    background: #fff !important;
+  }
+
+  .composer {
+    min-height: 44px !important;
+    gap: 4px !important;
+    padding: 5px 6px !important;
+  }
+
+  .composer-plus {
+    width: 32px !important;
+    height: 32px !important;
+    flex: 0 0 32px !important;
+  }
+
+  .composer textarea {
+    min-width: 0 !important;
+    min-height: 32px !important;
+    max-height: 90px !important;
+    padding: 7px 2px !important;
+    font-size: 16px !important;
+  }
+
+  .send-button {
+    height: 32px !important;
+    flex: 0 0 auto !important;
+    padding: 0 12px !important;
+  }
+
+  /* 모달 */
+  .modal-backdrop {
+    padding:
+      max(10px, env(safe-area-inset-top))
+      10px
+      max(10px, env(safe-area-inset-bottom)) !important;
+    align-items: flex-end !important;
+  }
+
+  .group-modal,
+  .room-manage-modal,
+  .profile-edit-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 92dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  .group-modal-header,
+  .manage-header,
+  .profile-edit-header {
+    padding: 16px !important;
+  }
+
+  .group-form,
+  .manage-body,
+  .profile-edit-body {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+
+  .group-employee-list,
+  .invite-list {
+    max-height: 38dvh !important;
+  }
+
+  .image-preview-backdrop {
+    padding: 12px !important;
+  }
+
+  .image-preview-large {
+    max-width: 96vw !important;
+    max-height: 82dvh !important;
+  }
+
+  /* 관리자 */
+  .messenger-shell.mobile-admin-open .middle-column {
+    display: none !important;
+  }
+
+  .messenger-shell.mobile-admin-open .chat-column {
+    display: flex !important;
+    background: #f8f9fb !important;
+  }
+
+  .admin-page {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .admin-page-header {
+    padding:
+      max(13px, env(safe-area-inset-top))
+      13px
+      11px !important;
+  }
+
+  .admin-page-header p {
+    display: none !important;
+  }
+
+  .admin-tabs {
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding: 7px 8px !important;
+    white-space: nowrap !important;
+    scrollbar-width: none;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-tabs button {
+    flex: 0 0 auto !important;
+  }
+
+  .admin-toolbar {
+    padding: 8px !important;
+  }
+
+  .admin-content,
+  .admin-chat-audit {
+    min-width: 0 !important;
+    overflow: auto !important;
+  }
+
+  .admin-table-wrap {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 720px !important;
+  }
+
+  .admin-chat-audit {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .admin-room-list {
+    width: 100% !important;
+    max-height: 220px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+
+  .admin-message-view {
+    min-height: 320px !important;
+  }
+
+  /* 로그인 / 가입 / 대기 */
+  .login-page {
+    min-height: 100dvh !important;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      14px
+      max(16px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .login-card {
+    width: 100% !important;
+    max-width: 420px !important;
+    padding: 25px 20px !important;
+    border-radius: 20px !important;
+  }
+}
+/* =========================================================
+   MOBILE REACTION / IMAGE OVERFLOW FIX
+   반응 여러 개, 이미지 메시지에서 좌우 잘림 방지
+   ========================================================= */
+@media (max-width: 640px) {
+  .message-row {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .message-content-stack {
+    min-width: 0 !important;
+    max-width: 76vw !important;
+    overflow: visible !important;
+  }
+
+  .message-row.incoming .message-content-stack {
+    margin-right: auto !important;
+  }
+
+  .message-row.outgoing .message-content-stack {
+    margin-left: auto !important;
+  }
+
+  .bubble-shell {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* 이미지가 반응 영역까지 화면 바깥으로 밀지 않도록 */
+  .image-message,
+  .image-message img {
+    width: auto !important;
+    max-width: min(66vw, 290px) !important;
+    height: auto !important;
+    max-height: 360px !important;
+  }
+
+  /* 반응은 메시지 아래에서 여러 줄로 안전하게 감김 */
+  .message-reactions {
+    width: fit-content !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    overflow: visible !important;
+  }
+
+  .message-row.incoming .message-reactions {
+    align-self: flex-start !important;
+    justify-content: flex-start !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+
+  .message-row.outgoing .message-reactions {
+    align-self: flex-end !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+  }
+
+  .message-reactions button {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+  }
+
+  /* 모바일 반응 선택창은 메시지 옆이 아니라 화면 하단 중앙에 띄움.
+     왼쪽/오른쪽 끝 메시지에서도 이모티콘이 잘리지 않음. */
+  .reaction-picker.fixed-picker,
+  .message-row.incoming .reaction-picker.fixed-picker,
+  .message-row.outgoing .reaction-picker.fixed-picker {
+    position: fixed !important;
+    z-index: 500 !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+
+    width: max-content !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 !important;
+    padding: 7px !important;
+
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18) !important;
+
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .reaction-picker.fixed-picker::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reaction-picker.fixed-picker button {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* ⋯ 메뉴도 화면 끝에서 잘리지 않게 */
+  .message-row.incoming .message-action-menu {
+    left: 0 !important;
+    right: auto !important;
+  }
+
+  .message-row.outgoing .message-action-menu {
+    left: auto !important;
+    right: 0 !important;
+  }
+}
+/* =========================================================
+   MOBILE/TOUCH REACTION PICKER COMPATIBILITY FIX
+   넓은 폰/폴더블/태블릿/모바일 브라우저 데스크톱 폭 대응
+   ========================================================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .reaction-picker.fixed-picker,
+  .message-row.incoming .reaction-picker.fixed-picker,
+  .message-row.outgoing .reaction-picker.fixed-picker {
+    position: fixed !important;
+    z-index: 9999 !important;
+
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+
+    transform: translateX(-50%) !important;
+
+    width: max-content !important;
+    max-width: calc(100vw - 24px) !important;
+
+    margin: 0 !important;
+    padding: 7px !important;
+
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18) !important;
+
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  .reaction-picker.fixed-picker::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .reaction-picker.fixed-picker button {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+}
+/* =========================================================
+   GLOBAL REACTION PICKER - iOS/SAFARI SAFE
+   메시지 내부 absolute/fixed 대신 ChatView 최상단 레이어로 렌더
+   ========================================================= */
+
+.reaction-picker-backdrop {
+  position: fixed !important;
+  z-index: 9998 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: default !important;
+}
+
+.reaction-picker-global {
+  position: fixed !important;
+  z-index: 9999 !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 88px !important;
+  transform: translateX(-50%) !important;
+
+  width: max-content !important;
+  max-width: calc(100vw - 24px) !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+
+  padding: 7px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.20) !important;
+
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+}
+
+.reaction-picker-global::-webkit-scrollbar {
+  display: none !important;
+}
+
+.reaction-picker-global button {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  flex: 0 0 36px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: transparent !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  touch-action: manipulation !important;
+}
+
+.reaction-picker-global button:hover,
+.reaction-picker-global button:active {
+  background: #f2f2f2 !important;
+}
+
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .reaction-picker-global {
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+}
+/* =========================================================
+   BOOKMARKS
+   ========================================================= */
+
+.bookmark-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+.bookmark-header {
+  min-height: 84px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+}
+
+.bookmark-header h1 {
+  margin: 4px 0 0;
+  color: #191919;
+  font-size: 24px;
+}
+
+.bookmark-search {
+  height: 44px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 14px 8px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #f5f5f5;
+  color: #9a9a9a;
+}
+
+.bookmark-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #191919;
+}
+
+.bookmark-error {
+  margin: 0 10px 8px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #bd405b;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bookmark-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 8px 12px;
+}
+
+.bookmark-empty {
+  height: 100%;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  color: #9a9a9a;
+  text-align: center;
+}
+
+.bookmark-empty strong {
+  color: #555;
+  font-size: 13px;
+}
+
+.bookmark-empty span {
+  font-size: 10px;
+}
+
+.bookmark-card {
+  position: relative;
+  width: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 42px 10px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bookmark-card:hover {
+  background: #f7f7f7;
+}
+
+.bookmark-card-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f1f1f1;
+  color: #777;
+}
+
+.bookmark-card-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.bookmark-card-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.bookmark-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bookmark-card-top strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #222;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark-card-top span {
+  flex: 0 0 auto;
+  color: #aaa;
+  font-size: 8px;
+}
+
+.bookmark-card-copy p {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark-card-copy small {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #a0a0a0;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark-remove-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #a5a5a5;
+  cursor: pointer;
+}
+
+.bookmark-remove-button:hover {
+  background: #fff1f2;
+  color: #c44860;
+}
+
+/* 북마크로 이동했을 때 원본 메시지 강조 */
+.message-highlight .bubble,
+.message-highlight .image-message,
+.message-highlight .file-message {
+  outline: 3px solid rgba(254, 229, 0, 0.75) !important;
+  outline-offset: 3px !important;
+}
+
+/* =========================================================
+   ABSOLUTE FINAL LAYER FIX
+   채팅방 설정 모달 위로 메시지 ⋮가 튀어나오는 문제 방지
+   ========================================================= */
+
+.message-action-anchor {
+  z-index: 150 !important;
+}
+
+.message-action-menu {
+  z-index: 170 !important;
+}
+
+.reaction-picker,
+.reaction-picker.fixed-picker {
+  z-index: 180 !important;
+}
+
+.reaction-picker-backdrop {
+  z-index: 9000 !important;
+}
+
+.reaction-picker-global {
+  z-index: 9001 !important;
+}
+
+.modal-backdrop {
+  position: fixed !important;
+  z-index: 50000 !important;
+  inset: 0 !important;
+}
+
+.modal-backdrop > * {
+  position: relative;
+  z-index: 50001 !important;
+}
+
+.room-manage-modal,
+.profile-edit-modal,
+.group-modal {
+  position: relative !important;
+  z-index: 50001 !important;
+}
+
+@media (max-width: 640px) {
+  .bookmark-header {
+    min-height: 70px !important;
+    padding:
+      max(14px, env(safe-area-inset-top))
+      17px
+      10px !important;
+  }
+
+  .bookmark-header h1 {
+    font-size: 24px !important;
+  }
+
+  .bookmark-search {
+    height: 44px !important;
+    margin: 5px 13px 8px !important;
+  }
+
+  .bookmark-list {
+    padding: 5px 7px 10px !important;
+  }
+
+  .bookmark-card {
+    min-height: 72px !important;
+    padding: 10px 42px 10px 10px !important;
+  }
+
+  .bookmark-card-icon {
+    width: 48px !important;
+    height: 48px !important;
+    flex-basis: 48px !important;
+  }
 }
